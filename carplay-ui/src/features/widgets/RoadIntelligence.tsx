@@ -1,76 +1,126 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { db, ref, onValue } from '../../services/firebase';
+import { AlertOctagon, Activity, Thermometer, Droplets, Wind } from 'lucide-react';
 import './RoadIntelligence.css';
 
-/* Custom premium icons for road intelligence metrics */
-const IconActivity = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-  </svg>
-);
-
-const IconThermo = () => (
-  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M10 9.5V3a2 2 0 0 0-4 0v6.5a3.5 3.5 0 1 0 4 0Z" />
-    <circle cx="8" cy="11.5" r="1" fill="currentColor" stroke="none" />
-  </svg>
-);
-
-const IconDrop = () => (
-  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M8 2C8 2 3.5 7.5 3.5 10a4.5 4.5 0 0 0 9 0C12.5 7.5 8 2 8 2Z" />
-  </svg>
-);
-
-const IconWind = () => (
-  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M10.5 3.5a2 2 0 1 1 0 2H2" />
-    <path d="M12.5 10.5a2 2 0 1 0 0-2H2" />
-  </svg>
-);
+interface V2XEvent {
+  detection: { subtype: string; severity: number; confidence: number; };
+  location: { lat: number; lon: number; geohash: string; };
+  timestamp: number;
+}
 
 const RoadIntelligence: React.FC = () => {
+  const [latestHazard, setLatestHazard] = useState<V2XEvent | null>(null);
+
+  useEffect(() => {
+    const eventsRef = ref(db, 'events');
+    const unsub = onValue(eventsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+
+      const now = Math.floor(Date.now() / 1000);
+      let newestEvent: V2XEvent | null = null;
+
+      Object.values(data).forEach((ev: any) => {
+        if (ev.detection?.subtype === 'pothole') {
+          // Only show if it happened in the last 60 seconds
+          if (now - ev.timestamp <= 60) {
+            if (!newestEvent || ev.timestamp > newestEvent.timestamp) {
+              newestEvent = ev;
+            }
+          }
+        }
+      });
+
+      setLatestHazard(newestEvent);
+    });
+
+    return () => unsub();
+  }, []);
+
   return (
     <motion.div
-      className="road-intel-widget"
+      className={`road-intel-widget ${latestHazard ? 'hazard-active' : ''}`}
       initial={{ opacity: 0, x: 30 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
     >
-      <div className="road-intel__header">
-        <div className="road-intel__main">
-          <div className="road-intel__icon">
-            <IconActivity />
-          </div>
-          <div>
-            <div className="road-intel__score">0.82</div>
-            <div className="road-intel__label">SURFACE FRICTION (μ)</div>
-          </div>
-        </div>
-      </div>
+      <AnimatePresence mode="wait">
+        {latestHazard ? (
+          <motion.div 
+            key="hazard"
+            initial={{ opacity: 0, y: 10 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -10 }}
+            className="v2x-hazard-alert"
+          >
+            <div className="hazard-header">
+              <AlertOctagon color="#ff453a" size={24} />
+              <div className="hazard-title">ROAD HAZARD DETECTED</div>
+            </div>
+            <div className="hazard-type">{latestHazard.detection.subtype.toUpperCase()}</div>
+            <div className="hazard-stats">
+              <div className="h-stat">
+                <span className="lbl">SEVERITY</span>
+                <span className="val" style={{color: latestHazard.detection.severity > 0.7 ? '#ff453a' : '#ff9f0a'}}>
+                  {(latestHazard.detection.severity * 100).toFixed(0)}%
+                </span>
+              </div>
+              <div className="h-div"/>
+              <div className="h-stat">
+                <span className="lbl">CONFIDENCE</span>
+                <span className="val">{(latestHazard.detection.confidence * 100).toFixed(0)}%</span>
+              </div>
+            </div>
+            <div className="hazard-footer">
+              <span className="pulse-dot"></span> V2X Network
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div 
+            key="normal"
+            initial={{ opacity: 0, y: 10 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <div className="road-intel__header">
+              <div className="road-intel__main">
+                <div className="road-intel__icon">
+                  <Activity size={22} color="#fff" />
+                </div>
+                <div>
+                  <div className="road-intel__score">0.82</div>
+                  <div className="road-intel__label">SURFACE FRICTION (μ)</div>
+                </div>
+              </div>
+            </div>
 
-      <div className="road-intel__metrics">
-        <div className="intel-metric">
-          <div className="intel-metric__label">
-            <IconThermo /> Surface
-          </div>
-          <div className="intel-metric__value">14.2°C</div>
-        </div>
+            <div className="road-intel__metrics">
+              <div className="intel-metric">
+                <div className="intel-metric__label">
+                  <Thermometer size={13} /> Surface
+                </div>
+                <div className="intel-metric__value">14.2°C</div>
+              </div>
 
-        <div className="intel-metric">
-          <div className="intel-metric__label">
-            <IconDrop /> Moisture
-          </div>
-          <div className="intel-metric__value">12%</div>
-        </div>
+              <div className="intel-metric">
+                <div className="intel-metric__label">
+                  <Droplets size={13} /> Moisture
+                </div>
+                <div className="intel-metric__value">12%</div>
+              </div>
 
-        <div className="intel-metric">
-          <div className="intel-metric__label">
-            <IconWind /> Ambient
-          </div>
-          <div className="intel-metric__value">13.0°C</div>
-        </div>
-      </div>
+              <div className="intel-metric">
+                <div className="intel-metric__label">
+                  <Wind size={13} /> Ambient
+                </div>
+                <div className="intel-metric__value">13.0°C</div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

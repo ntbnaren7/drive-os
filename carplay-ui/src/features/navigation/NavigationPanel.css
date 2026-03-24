@@ -76,58 +76,6 @@
   overflow: hidden;
 }
 
-/* Map placeholder grid */
-.nav-map__grid {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-  background-size: 60px 60px;
-}
-
-/* Roads overlay */
-.nav-map__roads {
-  position: absolute;
-  inset: 0;
-}
-
-.nav-map__road {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.06);
-  stroke-width: 2;
-}
-
-.nav-map__road--main {
-  stroke: rgba(255, 255, 255, 0.08);
-  stroke-width: 3;
-}
-
-/* Street labels */
-.nav-map__label {
-  position: absolute;
-  font-size: 0.6rem;
-  color: var(--text-tertiary);
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-  user-select: none;
-  pointer-events: none;
-}
-
-/* Navigation arrow */
-.nav-arrow {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 5;
-}
-
-.nav-arrow__marker {
-  width: 32px;
-  height: 32px;
-  filter: drop-shadow(0 0 12px rgba(58, 155, 255, 0.5));
-}
 
 /* Zoom controls */
 .nav-zoom {
