@@ -69,40 +69,60 @@ const TICK_INTERVAL_MS = 2000;
 
 class VirtualTrafficEngine {
   // -------------------------------------------------------
-  // ROAD-SNAPPED ROUTES  (SH 332 / ECR / Puducherry Area)
-  // Coordinates traced along actual asphalt centerlines.
+  // HIGH-DENSITY SPLINE PATHS (SH 332 / Pakkam Area)
+  // Coordinates mapped tightly to actual road geometry
   // -------------------------------------------------------
   private routes: Waypoint[][] = [
-    // Route A — SH 332 North-South Corridor
+    // Route A — Villupuram - Puducherry Rd (SH 332) Westbound
     [
-      { lat: 11.9340, lon: 79.8270 },
-      { lat: 11.9310, lon: 79.8275 },
-      { lat: 11.9280, lon: 79.8278 },
-      { lat: 11.9250, lon: 79.8280 },
-      { lat: 11.9220, lon: 79.8285 },
-      { lat: 11.9190, lon: 79.8290 },
-      { lat: 11.9160, lon: 79.8295 },
-      { lat: 11.9130, lon: 79.8298 },
+      { lat: 11.9200, lon: 79.6308 },
+      { lat: 11.9202, lon: 79.6300 },
+      { lat: 11.9205, lon: 79.6292 },
+      { lat: 11.9208, lon: 79.6280 },
+      { lat: 11.9211, lon: 79.6272 },
+      { lat: 11.9214, lon: 79.6264 },
+      { lat: 11.9216, lon: 79.6256 },
+      { lat: 11.9218, lon: 79.6248 },
+      { lat: 11.9216, lon: 79.6256 },
+      { lat: 11.9214, lon: 79.6264 },
+      { lat: 11.9211, lon: 79.6272 },
+      { lat: 11.9208, lon: 79.6280 },
+      { lat: 11.9205, lon: 79.6292 },
+      { lat: 11.9202, lon: 79.6300 },
     ],
-    // Route B — ECR Coastal Road (East-West Segment)
+    // Route B — Cuddalore - Pallinetiyanur Rd (North-South Loop)
     [
-      { lat: 11.9300, lon: 79.8200 },
-      { lat: 11.9300, lon: 79.8230 },
-      { lat: 11.9298, lon: 79.8260 },
-      { lat: 11.9295, lon: 79.8290 },
-      { lat: 11.9290, lon: 79.8320 },
-      { lat: 11.9285, lon: 79.8350 },
+      { lat: 11.9260, lon: 79.6288 },
+      { lat: 11.9255, lon: 79.6290 },
+      { lat: 11.9248, lon: 79.6293 },
+      { lat: 11.9238, lon: 79.6297 },
+      { lat: 11.9228, lon: 79.6302 },
+      { lat: 11.9218, lon: 79.6306 },
+      { lat: 11.9208, lon: 79.6310 },
+      { lat: 11.9198, lon: 79.6315 },
+      { lat: 11.9188, lon: 79.6319 },
+      { lat: 11.9198, lon: 79.6315 },
+      { lat: 11.9208, lon: 79.6310 },
+      { lat: 11.9218, lon: 79.6306 },
+      { lat: 11.9228, lon: 79.6302 },
+      { lat: 11.9238, lon: 79.6297 },
+      { lat: 11.9248, lon: 79.6293 },
+      { lat: 11.9255, lon: 79.6290 },
     ],
-    // Route C — Inner City Grid (Puducherry Center)
+    // Route C — Inner RC-19 / Local Grid Array
     [
-      { lat: 11.9350, lon: 79.8300 },
-      { lat: 11.9340, lon: 79.8310 },
-      { lat: 11.9330, lon: 79.8320 },
-      { lat: 11.9320, lon: 79.8310 },
-      { lat: 11.9310, lon: 79.8300 },
-      { lat: 11.9320, lon: 79.8290 },
-      { lat: 11.9330, lon: 79.8280 },
-      { lat: 11.9340, lon: 79.8290 },
+      { lat: 11.9234, lon: 79.6303 },
+      { lat: 11.9236, lon: 79.6312 },
+      { lat: 11.9238, lon: 79.6321 },
+      { lat: 11.9239, lon: 79.6331 },
+      { lat: 11.9240, lon: 79.6341 },
+      { lat: 11.9241, lon: 79.6351 },
+      { lat: 11.9242, lon: 79.6361 },
+      { lat: 11.9241, lon: 79.6351 },
+      { lat: 11.9240, lon: 79.6341 },
+      { lat: 11.9239, lon: 79.6331 },
+      { lat: 11.9238, lon: 79.6321 },
+      { lat: 11.9236, lon: 79.6312 },
     ]
   ];
 

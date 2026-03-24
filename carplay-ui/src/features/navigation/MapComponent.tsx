@@ -87,7 +87,7 @@ const MapComponent = React.forwardRef<MapComponentHandle, MapComponentProps>(({ 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: 'mapbox://styles/mapbox/navigation-night-v1',
-      center: [25.2798, 54.6872],
+      center: [79.628, 11.921],
       zoom: 15.5,
       pitch: 60,
       bearing: -17.6, 
@@ -173,20 +173,20 @@ const MapComponent = React.forwardRef<MapComponentHandle, MapComponentProps>(({ 
 
       if (!hasLockedRef.current) {
         addLog('[ERR] All Nets Failed. Using Safe Harbor.');
-        applyLocationLock(-0.1278, 51.5074, 'error', 'OFFLINE');
+        applyLocationLock(79.628, 11.921, 'error', 'OFFLINE');
       }
     })();
 
     setTimeout(() => {
       if (!hasLockedRef.current) {
         addLog('[ERR] 8s Deadlock Timeout. Dropping Harbor.');
-        applyLocationLock(-0.1278, 51.5074, 'error', 'OFFLINE');
+        applyLocationLock(79.628, 11.921, 'error', 'OFFLINE');
       }
     }, 8000);
 
     // Global Tracking Variables
-    let currentLoc = { lng: 25.2798, lat: 54.6872 };
-    let targetLoc = { lng: 25.2798, lat: 54.6872 };
+    let currentLoc = { lng: 79.628, lat: 11.921 };
+    let targetLoc = { lng: 79.628, lat: 11.921 };
     let currentHeading = 0;
     let targetHeading = 0;
 
@@ -365,7 +365,8 @@ const MapComponent = React.forwardRef<MapComponentHandle, MapComponentProps>(({ 
           'circle-color': 'rgba(255, 69, 58, 0.0)',
           'circle-stroke-width': 2,
           'circle-stroke-color': 'rgba(255, 69, 58, 0.4)',
-          'circle-blur': 0.6
+          'circle-blur': 0.6,
+          'circle-pitch-alignment': 'map'
         }
       });
 
@@ -378,7 +379,8 @@ const MapComponent = React.forwardRef<MapComponentHandle, MapComponentProps>(({ 
           'circle-radius': 5,
           'circle-color': '#ff453a',
           'circle-stroke-width': 1.5,
-          'circle-stroke-color': '#fff'
+          'circle-stroke-color': '#fff',
+          'circle-pitch-alignment': 'map'
         }
       });
 
@@ -629,6 +631,15 @@ const MapComponent = React.forwardRef<MapComponentHandle, MapComponentProps>(({ 
             <span>{destination.name}</span>
           </div>
           <div className="map-nav-hud-stats">
+            <div className="gps-coord">
+              <span className="lbl">LAT</span>
+              <span className="val">{telemetry.lat.toFixed(5)}°</span>
+            </div>
+            <div className="gps-coord">
+              <span className="lbl">LON</span>
+              <span className="val">{telemetry.lng.toFixed(5)}°</span>
+            </div>
+            <div className="stat-div" />
             <div className="stat">
               <span className="val">{Math.round(routeInfo.duration / 60)}</span>
               <span className="lbl">MIN</span>
