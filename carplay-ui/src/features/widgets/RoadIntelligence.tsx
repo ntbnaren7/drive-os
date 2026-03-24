@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db, ref, onValue } from '../../services/firebase';
-import { AlertOctagon, Activity, Thermometer, Droplets, Wind } from 'lucide-react';
+import { AlertOctagon, Activity, Thermometer, Droplets, Wind, Filter } from 'lucide-react';
 import './RoadIntelligence.css';
 
 interface V2XEvent {
@@ -10,8 +10,23 @@ interface V2XEvent {
   timestamp: number;
 }
 
+// Helper: Animated Sine Wave
+const TelemetryWave = () => (
+  <div className="telemetry-wave">
+    {[...Array(8)].map((_, i) => (
+      <motion.div
+        key={i}
+        className="wave-bar"
+        animate={{ height: ['20%', '100%', '20%'] }}
+        transition={{ duration: 0.8 + Math.random() * 0.5, repeat: Infinity, ease: 'easeInOut', delay: i * 0.1 }}
+      />
+    ))}
+  </div>
+);
+
 const RoadIntelligence: React.FC = () => {
   const [latestHazard, setLatestHazard] = useState<V2XEvent | null>(null);
+  const [activeNodes, setActiveNodes] = useState(3);
 
   useEffect(() => {
     const eventsRef = ref(db, 'events');
@@ -60,6 +75,9 @@ const RoadIntelligence: React.FC = () => {
               <div className="hazard-title">ROAD HAZARD DETECTED</div>
             </div>
             <div className="hazard-type">{latestHazard.detection.subtype.toUpperCase()}</div>
+            <div className="hazard-coords">
+              LAT {latestHazard.location.lat.toFixed(4)} / LON {latestHazard.location.lon.toFixed(4)}
+            </div>
             <div className="hazard-stats">
               <div className="h-stat">
                 <span className="lbl">SEVERITY</span>
@@ -74,7 +92,7 @@ const RoadIntelligence: React.FC = () => {
               </div>
             </div>
             <div className="hazard-footer">
-              <span className="pulse-dot"></span> V2X Network
+              <span className="pulse-dot"></span> V2X MESH | {latestHazard.location.geohash}
             </div>
           </motion.div>
         ) : (

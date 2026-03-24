@@ -30,7 +30,7 @@ const MapComponent = React.forwardRef<MapComponentHandle, MapComponentProps>(({ 
   
   // V2X Remote Tracking Refs
   const remoteVehiclesRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
-  const potholesRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
+  const v2vCoordsRef = useRef<number[][]>([]);
   
   const [telemetry, setTelemetry] = useState({ lat: 54.6872, lng: 25.2798, alt: '0' });
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
@@ -320,19 +320,105 @@ const MapComponent = React.forwardRef<MapComponentHandle, MapComponentProps>(({ 
       // ==========================================
       // V2X EVENT & VEHICLE CLOUD SYNCHRONIZATION
       // ==========================================
+      
+      map.addSource('v2v-links', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+
+      map.addLayer({
+        id: 'v2v-beam-glow',
+        type: 'line',
+        source: 'v2v-links',
+        paint: {
+          'line-color': '#3a9bff',
+          'line-width': 6,
+          'line-opacity': 0.3,
+          'line-blur': 4
+        }
+      });
+      
+      map.addLayer({
+        id: 'v2v-beam-core',
+        type: 'line',
+        source: 'v2v-links',
+        paint: {
+          'line-color': '#8ebcfc',
+          'line-width': 2,
+          'line-dasharray': [2, 4]
+        }
+      });
+
+      // GeoJSON source for absolute-locked pothole markers
+      map.addSource('v2x-potholes', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+
+      // Layer 1: Sonar glow ring (pulsing outer circle)
+      map.addLayer({
+        id: 'pothole-sonar-glow',
+        type: 'circle',
+        source: 'v2x-potholes',
+        paint: {
+          'circle-radius': 18,
+          'circle-color': 'rgba(255, 69, 58, 0.0)',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': 'rgba(255, 69, 58, 0.4)',
+          'circle-blur': 0.6
+        }
+      });
+
+      // Layer 2: Core dot (bright red, small)
+      map.addLayer({
+        id: 'pothole-core',
+        type: 'circle',
+        source: 'v2x-potholes',
+        paint: {
+          'circle-radius': 5,
+          'circle-color': '#ff453a',
+          'circle-stroke-width': 1.5,
+          'circle-stroke-color': '#fff'
+        }
+      });
+
+      // Layer 3: Coordinate labels
+      map.addLayer({
+        id: 'pothole-labels',
+        type: 'symbol',
+        source: 'v2x-potholes',
+        layout: {
+          'text-field': ['get', 'coordLabel'],
+          'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+          'text-size': 10,
+          'text-offset': [0, 1.8],
+          'text-anchor': 'top',
+          'text-allow-overlap': true
+        },
+        paint: {
+          'text-color': 'rgba(255, 255, 255, 0.8)',
+          'text-halo-color': 'rgba(0, 0, 0, 0.9)',
+          'text-halo-width': 1.5
+        }
+      });
+
       const vehiclesRef = fbRef(db, 'vehicles');
       const unsubVehicles = onValue(vehiclesRef, (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
         
+        const coords: number[][] = [];
+        
         Object.keys(data).forEach((vid) => {
           const veh = data[vid];
           if (veh.location) {
+             coords.push([veh.location.lon, veh.location.lat]);
+             
              let marker = remoteVehiclesRef.current[vid];
              if (!marker) {
                const el = document.createElement('div');
                el.className = 'v2x-vehicle-marker';
-               el.innerHTML = `<div style="width:12px; height:12px; background:#8e8e93; border:2px solid #fff; border-radius:50%; box-shadow:0 0 8px rgba(0,0,0,0.5);"></div>`;
+               el.innerHTML = `<div style="width:14px; height:14px; background:#3a9bff; border:2px solid #fff; border-radius:50%; box-shadow:0 0 12px rgba(58,155,255,0.8);"></div>`;
                marker = new mapboxgl.Marker({ element: el })
                  .setLngLat([veh.location.lon, veh.location.lat])
                  .addTo(mapRef.current!);
@@ -347,32 +433,40 @@ const MapComponent = React.forwardRef<MapComponentHandle, MapComponentProps>(({ 
       const eventsRef = fbRef(db, 'events');
       const unsubEvents = onValue(eventsRef, (snapshot) => {
         const data = snapshot.val();
-        if (!data) return;
         
-        Object.keys(data).forEach((eid) => {
-          const ev = data[eid];
-          if (ev.detection?.subtype === 'pothole' && ev.location) {
-             let marker = potholesRef.current[eid];
-             if (!marker) {
-               const el = document.createElement('div');
-               el.className = 'v2x-pothole-marker';
-               el.innerHTML = `<div style="width:20px; height:20px; background:rgba(255, 159, 10, 0.2); border:2px solid #ff9f0a; border-radius:4px; display:flex; align-items:center; justify-content:center; color:#ff9f0a; font-weight:bold; font-size:12px; box-shadow:0 0 12px rgba(255,159,10,0.6);">!</div>`;
-               marker = new mapboxgl.Marker({ element: el })
-                 .setLngLat([ev.location.lon, ev.location.lat])
-                 .addTo(mapRef.current!);
-               potholesRef.current[eid] = marker;
-             } else {
-               marker.setLngLat([ev.location.lon, ev.location.lat]);
-             }
-          }
-        });
+        // Build GeoJSON FeatureCollection from live events
+        const features: any[] = [];
+        if (data) {
+          Object.values(data).forEach((ev: any) => {
+            if (ev.detection?.subtype === 'pothole' && ev.location) {
+              features.push({
+                type: 'Feature',
+                geometry: {
+                  type: 'Point',
+                  coordinates: [ev.location.lon, ev.location.lat]
+                },
+                properties: {
+                  coordLabel: `${ev.location.lat.toFixed(4)}, ${ev.location.lon.toFixed(4)}`,
+                  severity: ev.detection.severity
+                }
+              });
+            }
+          });
+        }
+        
+        // Update the GeoJSON source — markers are now baked into the WebGL canvas
+        if (mapRef.current && mapRef.current.getSource('v2x-potholes')) {
+          (mapRef.current.getSource('v2x-potholes') as mapboxgl.GeoJSONSource).setData({
+            type: 'FeatureCollection',
+            features
+          });
+        }
       });
 
       (mapRef.current as any)._cleanupV2X = () => {
         unsubVehicles();
         unsubEvents();
         Object.values(remoteVehiclesRef.current).forEach(m => m.remove());
-        Object.values(potholesRef.current).forEach(m => m.remove());
       };
     });
 
@@ -391,6 +485,24 @@ const MapComponent = React.forwardRef<MapComponentHandle, MapComponentProps>(({ 
         if (markerRef.current) {
           markerRef.current.setLngLat([currentLoc.lng, currentLoc.lat]);
           markerRef.current.setRotation(currentHeading);
+        }
+        
+        // Update V2V Data Beams
+        if (mapRef.current && mapRef.current.getSource('v2v-links')) {
+          const coords = v2vCoordsRef.current;
+          if (coords.length > 1) {
+             // Draw lines connecting vehicles in a loop to form a "mesh network"
+             const lineCoords = [...coords, coords[0]]; 
+             const source = mapRef.current.getSource('v2v-links') as mapboxgl.GeoJSONSource;
+             source.setData({
+               type: 'FeatureCollection',
+               features: [{
+                 type: 'Feature',
+                 properties: {},
+                 geometry: { type: 'LineString', coordinates: lineCoords }
+               }]
+             });
+          }
         }
       } catch (e) {
       }

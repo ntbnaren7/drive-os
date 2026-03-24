@@ -309,3 +309,86 @@
   border-color: rgba(58, 155, 255, 0.3);
   box-shadow: 0 4px 16px rgba(58, 155, 255, 0.2);
 }
+
+/* ==========================================
+   V2X SONAR RING ANIMATION (Hazard Pins)
+   ========================================== */
+.v2x-sonar-marker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  pointer-events: none;
+}
+
+.sonar-core {
+  width: 10px;
+  height: 10px;
+  background: #ff453a;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(255, 69, 58, 0.8);
+  z-index: 2;
+}
+
+.sonar-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.5);
+  width: 40px;
+  height: 40px;
+  border: 1.5px solid rgba(255, 69, 58, 0.6);
+  border-radius: 50%;
+  animation: sonar-expand 2s ease-out infinite;
+  z-index: 1;
+}
+
+.sonar-ring.ring-2 {
+  animation-delay: 0.7s;
+}
+
+@keyframes sonar-expand {
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+  }
+}
+
+.sonar-coords {
+  position: absolute;
+  bottom: -6px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 69, 58, 0.3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+  z-index: 3;
+}
+
+/* ==========================================
+   V2X VEHICLE MARKER (Glowing Cyan Dot)
+   ========================================== */
+.v2x-vehicle-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: vehicle-breathe 2s ease-in-out infinite;
+}
+
+@keyframes vehicle-breathe {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(58, 155, 255, 0.6)); }
+  50% { filter: drop-shadow(0 0 10px rgba(58, 155, 255, 1)); }
+}
