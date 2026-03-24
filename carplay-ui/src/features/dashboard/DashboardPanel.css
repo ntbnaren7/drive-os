@@ -1,248 +1,278 @@
 .dashboard-panel {
+  background: #0d0d0d;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: var(--sp-24) 0 var(--sp-12) 0;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--glass-border);
+  position: relative;
   overflow: hidden;
-  position: relative;
+  height: 100%;
 }
 
-/* Top icons row */
-.dashboard__top-icons {
+/* =========================================
+   TOP SECTION (PRND & Speedo)
+========================================= */
+.dash__top-section {
   display: flex;
-  gap: var(--sp-16);
-  padding: var(--sp-16) var(--sp-16) 0;
-  z-index: 2;
-}
-
-.dashboard__top-icons svg {
-  color: var(--text-tertiary);
-  width: 18px;
-  height: 18px;
-  transition: color 0.2s;
-}
-
-.dashboard__top-icons svg:hover {
-  color: var(--text-secondary);
-}
-
-/* Speedometer section */
-.speedometer-section {
+  height: 240px;
+  width: 100%;
+  padding: 0 var(--sp-20);
   position: relative;
+  z-index: 10;
+}
+
+/* Left Rail (Telltales + PRND) */
+.dash__left-rail {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--sp-8) 0 0;
-  z-index: 2;
+  width: 32px;
+  gap: var(--sp-24);
+  margin-top: var(--sp-12);
 }
 
-.speedometer-container {
-  position: relative;
-  width: 160px;
-  height: 160px;
+.dash__telltales {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
 }
 
-.speedometer-svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.speedometer-track {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.06);
-  stroke-width: 6;
-  stroke-linecap: round;
-}
-
-.speedometer-progress {
-  fill: none;
-  stroke: url(#speedGradient);
-  stroke-width: 6;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 1s var(--ease-out-expo);
-  filter: drop-shadow(0 0 6px var(--accent-glow));
-}
-
-.speedometer-value {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-}
-
-.speedometer-value__number {
-  font-family: var(--font-display);
-  font-size: 2.8rem;
-  font-weight: 700;
-  letter-spacing: -2px;
-  line-height: 1;
-  color: var(--text-primary);
-}
-
-.speedometer-value__unit {
-  font-size: 0.7rem;
+.dash__prnd-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-16);
+  font-size: 0.75rem;
+  font-weight: 500;
   color: var(--text-tertiary);
   letter-spacing: 1px;
-  text-transform: uppercase;
-  margin-top: 2px;
 }
 
-/* Gear & range indicators */
-.gear-indicators {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-12);
-  margin-top: var(--sp-4);
-  font-size: 0.75rem;
-}
-
-.gear-indicator {
-  color: var(--text-tertiary);
-  font-weight: 500;
-  transition: color 0.2s;
-}
-
-.gear-indicator--active {
-  color: var(--text-primary);
-}
-
-.speed-limit {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-4);
-  color: var(--text-tertiary);
-  font-size: 0.72rem;
-  margin-top: var(--sp-4);
-}
-
-.speed-limit__badge {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 1.5px solid var(--text-tertiary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.6rem;
+.dash__prnd-active {
+  color: #ffffff;
   font-weight: 600;
 }
 
-.drive-mode {
-  font-size: 0.72rem;
-  color: var(--accent);
-  font-weight: 500;
-  margin-top: var(--sp-4);
-}
-
-/* Car visualization */
-.car-visualization {
+/* Speedometer Area */
+.dash__speedo-container {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
   position: relative;
-  z-index: 1;
-  min-height: 0;
-  overflow: hidden;
+  margin-top: -10px;
 }
 
-.car-image-container {
+.dash__speedo-arc-wrap {
   position: relative;
-  width: 200px;
-  height: 100%;
+  width: 220px;
+  height: 160px;
   display: flex;
-  align-items: center;
   justify-content: center;
 }
 
-.car-svg-wrapper {
-  position: relative;
-  width: 180px;
-}
-
-/* Ambient light behind car */
-.car-ambient-light {
+.dash__speedo-svg {
   position: absolute;
-  top: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 120px;
-  height: 60px;
-  background: radial-gradient(ellipse, rgba(160, 140, 255, 0.12) 0%, transparent 70%);
-  filter: blur(20px);
-  pointer-events: none;
-}
-
-.car-body {
+  top: 0;
   width: 100%;
-  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.5));
+  height: 180px;
 }
 
-.car-lock-icon {
+.dash__speed-center {
   position: absolute;
-  top: 55%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: 55px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.dash__speed-num {
+  font-family: var(--font-display);
+  font-size: 3.8rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -2px;
+  color: #ffffff;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.dash__speed-unit {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: lowercase;
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+
+.dash__limit-badge {
+  position: absolute;
+  top: 25px;
+  right: 15px;
   width: 32px;
   height: 32px;
-  background: rgba(0, 0, 0, 0.6);
   border-radius: 50%;
+  border: 1.5px solid rgba(255, 69, 58, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  z-index: 5;
 }
 
-.car-lock-icon svg {
-  width: 14px;
-  height: 14px;
+/* Controls (Target Speed & Modes) */
+.dash__controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-8);
+  margin-top: auto;
+  z-index: 5;
+}
+
+.dash__target-speed {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
   color: var(--text-secondary);
 }
 
-/* Bottom controls */
-.dashboard__bottom-controls {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--sp-20);
-  padding: var(--sp-12) var(--sp-16);
-  z-index: 2;
+.dash__target-val {
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 1px;
 }
 
-.dashboard__bottom-controls svg {
-  width: 20px;
-  height: 20px;
+.dash__chevron-dim {
   color: var(--text-tertiary);
-  transition: color 0.2s;
   cursor: pointer;
 }
 
-.dashboard__bottom-controls svg:hover {
-  color: var(--text-primary);
+.dash__modes-row {
+  display: flex;
+  gap: var(--sp-16);
+  margin-top: var(--sp-4);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
+  padding: 8px 32px;
+  border-radius: 20px;
 }
 
-/* Page dots */
-.dashboard__page-dots {
+.dash__mode {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-tertiary);
+  transition: all 0.3s ease;
+}
+
+.dash__mode--active {
+  color: #ffffff;
+  font-weight: 600;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+}
+
+/* =========================================
+   BOTTOM SECTION (CAR & BEAM)
+========================================= */
+.dash__car-wrap {
+  position: relative;
+  flex: 1;
+  width: 100%;
   display: flex;
   justify-content: center;
-  gap: var(--sp-4);
-  padding-bottom: var(--sp-10);
+  align-items: center;
+  min-height: 0;
+  margin-top: 20px;
+  padding-bottom: 20px;
 }
 
-.page-dot {
+/* The ambient volumetric light beam overlay linking the speedometer and car */
+.dash__speedo-beam {
+  position: absolute;
+  top: -80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 260px;
+  height: 180px;
+  background: radial-gradient(ellipse at top, rgba(160, 200, 255, 0.15) 0%, rgba(160, 200, 255, 0.02) 40%, transparent 70%);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.dash__car-svg {
+  width: 250px;
+  height: auto;
+  max-height: 105%;
+  z-index: 2;
+  margin-bottom: -15px;
+}
+
+.dash__lane {
+  position: absolute;
+  top: 0%;
+  bottom: 0%;
+  width: 2px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  z-index: 1;
+}
+
+.dash__lane--left { left: 18%; }
+.dash__lane--right { right: 18%; }
+
+.dash__lane-dash {
+  width: 2px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 1px;
+}
+
+.dash__lock-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, 0%);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* =========================================
+   UTILITIES
+========================================= */
+.dash__bottom-row {
+  display: flex;
+  justify-content: center;
+  gap: var(--sp-24);
+  margin-top: auto;
+  padding-top: var(--sp-8);
+  color: var(--text-tertiary);
+  z-index: 10;
+}
+
+.dash__dots {
+  display: flex;
+  justify-content: center;
+  gap: var(--sp-6);
+  padding-top: var(--sp-12);
+  padding-bottom: var(--sp-4);
+  z-index: 10;
+}
+
+.dash__dot {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--text-tertiary);
-  transition: all 0.3s;
+  background: rgba(255, 255, 255, 0.15);
 }
 
-.page-dot--active {
-  background: var(--text-primary);
+.dash__dot--active {
+  background: #ffffff;
   width: 14px;
   border-radius: 3px;
 }

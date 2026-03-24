@@ -2,11 +2,11 @@
   display: flex;
   align-items: center;
   height: 56px;
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--glass-border);
-  padding: 0 var(--sp-20);
-  gap: var(--sp-6);
+  background: #0d0d0d;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0 var(--sp-24);
+  gap: var(--sp-8);
 }
 
 /* Playback Controls */

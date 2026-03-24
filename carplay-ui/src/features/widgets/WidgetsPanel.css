@@ -8,10 +8,10 @@
 
 /* Weather Widget */
 .weather-widget {
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--glass-border);
-  padding: var(--sp-16) var(--sp-20);
+  background: #111111;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: var(--sp-20) var(--sp-24);
   flex-shrink: 0;
 }
 
@@ -107,10 +107,10 @@
 
 /* Schedule Widget */
 .schedule-widget {
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--glass-border);
-  padding: var(--sp-16) var(--sp-20);
+  background: #111111;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: var(--sp-20) var(--sp-24);
   flex: 1;
   min-height: 0;
   display: flex;

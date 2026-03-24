@@ -19,6 +19,8 @@ const STREET_LABELS = [
   { text: 'NAUJAMIESTIS', x: '25%', y: '90%', rotate: 0 },
 ];
 
+const SW = 1.2;
+
 const NavigationPanel: React.FC = () => {
   return (
     <motion.div
@@ -30,11 +32,11 @@ const NavigationPanel: React.FC = () => {
       {/* Search */}
       <div className="nav-search">
         <div className="nav-search__input-wrapper">
-          <Search />
+          <Search strokeWidth={SW} style={{ opacity: 0.6 }} />
           <input className="nav-search__input" placeholder="Navigate" readOnly />
         </div>
         <button className="nav-search__action">
-          <NavIcon />
+          <NavIcon strokeWidth={SW} />
         </button>
       </div>
 
@@ -42,7 +44,7 @@ const NavigationPanel: React.FC = () => {
       <div className="nav-map">
         <div className="nav-map__grid" />
 
-        {/* SVG Roads */}
+        {/* SVG Roads & Hazards */}
         <svg className="nav-map__roads" viewBox="0 0 600 500" preserveAspectRatio="none">
           {/* Main horizontal road */}
           <path className="nav-map__road nav-map__road--main" d="M0 150 Q200 140, 350 180 Q500 220, 600 200" />
@@ -57,6 +59,34 @@ const NavigationPanel: React.FC = () => {
           <path className="nav-map__road" d="M250 0 L260 200" />
           <path className="nav-map__road" d="M0 250 L200 240" />
           <path className="nav-map__road" d="M400 300 L600 310" />
+
+          {/* V2V Communication Range Ring */}
+          <motion.circle 
+            cx="300" cy="250" r="120" 
+            fill="rgba(58, 155, 255, 0.05)" 
+            stroke="rgba(58, 155, 255, 0.2)" 
+            strokeWidth="1"
+            strokeDasharray="4 4"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: [1, 1.05, 1], opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          />
+
+          {/* Hazard Markers (Potholes, Cracks) */}
+          <g>
+            {/* High Severity (Red) Pothole 120m ahead */}
+            <circle cx="280" cy="180" r="6" fill="#ff453a" opacity="0.8" filter="drop-shadow(0 0 4px #ff453a)" />
+            <circle cx="280" cy="180" r="6" fill="none" stroke="#ff453a" strokeWidth="2">
+              <animate attributeName="r" from="6" to="16" dur="1.5s" repeatCount="indefinite" />
+              <animate attributeName="opacity" from="1" to="0" dur="1.5s" repeatCount="indefinite" />
+            </circle>
+
+            {/* Medium Severity (Orange) Surface Crack 340m */}
+            <circle cx="420" cy="380" r="5" fill="#ff9f0a" opacity="0.6" />
+            
+            {/* Low Severity (Green) Uneven Road 850m */}
+            <circle cx="120" cy="120" r="4" fill="#30d158" opacity="0.4" />
+          </g>
         </svg>
 
         {/* Street Labels */}

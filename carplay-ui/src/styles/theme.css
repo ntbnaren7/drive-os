@@ -1,27 +1,26 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+/* theme.css - DriveOS Premium Dark Theme */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500;600&display=swap');
 
 :root {
-  /* Core Colors */
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #111111;
-  --bg-card: #161616;
-  --bg-card-hover: #1a1a1a;
-  --bg-elevated: #1c1c1e;
-  --accent: #3a9bff;
-  --accent-dim: rgba(58, 155, 255, 0.15);
-  --accent-glow: rgba(58, 155, 255, 0.35);
-
-  /* Text */
+  /* Colors - Deep Black Base */
+  --bg-base: #000000;
+  --bg-card: #0a0a0a;
+  --bg-card-elevated: #111111;
+  --bg-card-hover: #151515;
+  
+  --accent: #ffffff;
+  --accent-dim: rgba(255, 255, 255, 0.08);
+  --accent-blue: #3a9bff;
+  
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.55);
   --text-tertiary: rgba(255, 255, 255, 0.30);
-  --text-quaternary: rgba(255, 255, 255, 0.12);
 
-  /* Glassmorphism */
-  --glass-bg: rgba(255, 255, 255, 0.03);
-  --glass-bg-light: rgba(255, 255, 255, 0.06);
+  /* Glassmorphism - Ultra subtle */
   --glass-border: rgba(255, 255, 255, 0.06);
   --glass-border-light: rgba(255, 255, 255, 0.10);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+  --glass-blur: blur(24px);
 
   /* Spacing */
   --sp-2: 2px;
@@ -63,7 +62,7 @@ html, body {
 }
 
 body {
-  background: var(--bg-primary);
+  background: #000000;
   color: var(--text-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -102,4 +101,4 @@ input {
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--text-quaternary); border-radius: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }

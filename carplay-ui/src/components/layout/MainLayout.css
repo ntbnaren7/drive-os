@@ -3,8 +3,9 @@
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  background: var(--bg-primary);
+  background: #000000;
   overflow: hidden;
+  padding: var(--sp-8);
 }
 
 /* Status Bar */
@@ -13,11 +14,11 @@
   align-items: center;
   justify-content: center;
   gap: var(--sp-12);
-  height: 28px;
+  height: 24px;
   font-size: 0.72rem;
   color: var(--text-secondary);
   flex-shrink: 0;
-  padding: 0 var(--sp-24);
+  padding: 0 var(--sp-16);
 }
 
 .status-bar__left,
@@ -27,14 +28,13 @@
   gap: var(--sp-8);
 }
 
-/* Main Content Grid */
+/* Main Content Grid - Bento Layout */
 .layout-grid {
   display: grid;
-  grid-template-columns: 300px 1fr 320px;
-  gap: var(--sp-12);
+  grid-template-columns: 340px 1fr 320px;
+  gap: var(--sp-10);
   flex: 1;
   min-height: 0;
-  padding: 0 var(--sp-12);
 }
 
 /* Dashboard Area */
@@ -56,24 +56,24 @@
 .widgets-area {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-12);
+  gap: var(--sp-10);
   min-height: 0;
 }
 
 /* Media Player Bar */
 .media-bar-area {
-  padding: var(--sp-8) var(--sp-12);
+  padding: var(--sp-8) 0;
   flex-shrink: 0;
 }
 
 /* Bottom Dock */
 .dock-area {
-  padding: var(--sp-4) var(--sp-12) var(--sp-10);
   flex-shrink: 0;
+  padding-bottom: var(--sp-4);
 }
 
 @media (max-width: 1400px) {
   .layout-grid {
-    grid-template-columns: 260px 1fr 280px;
+    grid-template-columns: 300px 1fr 280px;
   }
 }

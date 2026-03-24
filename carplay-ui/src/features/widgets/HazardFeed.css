@@ -1,0 +1,125 @@
+.hazard-feed {
+  background: #111111;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: var(--sp-20) var(--sp-24);
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.hazard__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--sp-12);
+}
+
+.hazard__title {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-6);
+}
+
+.hazard__pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff453a;
+  box-shadow: 0 0 8px rgba(255, 69, 58, 0.6);
+  animation: bgPulse 2s infinite ease-in-out;
+}
+
+@keyframes bgPulse {
+  0% { opacity: 0.5; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.hazard__list {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: var(--sp-4);
+  gap: var(--sp-8);
+}
+
+.hazard-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  padding: var(--sp-12);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  transition: all 0.2s;
+}
+
+.hazard-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--glass-border-light);
+}
+
+.hazard-item__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hazard-item--high .hazard-item__icon {
+  background: rgba(255, 69, 58, 0.15);
+  color: #ff453a;
+  border: 1px solid rgba(255, 69, 58, 0.3);
+}
+
+.hazard-item--med .hazard-item__icon {
+  background: rgba(255, 159, 10, 0.15);
+  color: #ff9f0a;
+  border: 1px solid rgba(255, 159, 10, 0.3);
+}
+
+.hazard-item--low .hazard-item__icon {
+  background: rgba(48, 209, 88, 0.15);
+  color: #30d158;
+  border: 1px solid rgba(48, 209, 88, 0.3);
+}
+
+.hazard-item__details {
+  flex: 1;
+  min-width: 0;
+}
+
+.hazard-item__type {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.hazard-item__meta {
+  display: flex;
+  gap: var(--sp-8);
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+}
+
+.hazard-item__dist {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.hazard-item__conf {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}

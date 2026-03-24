@@ -7,8 +7,11 @@ import {
   Search,
   Shuffle,
   Repeat,
+  Music as MusicIcon
 } from 'lucide-react';
 import './MediaBar.css';
+
+const SW = 1.2; // Linear Thin stroke
 
 const MediaBar: React.FC = () => {
   return (
@@ -21,19 +24,21 @@ const MediaBar: React.FC = () => {
       {/* Playback Controls */}
       <div className="media__controls">
         <button className="media__btn">
-          <SkipBack size={18} />
+          <SkipBack strokeWidth={SW} />
         </button>
         <button className="media__btn media__btn--play">
-          <Pause size={22} />
+          <Pause strokeWidth={SW} size={22} color="#000" />
         </button>
         <button className="media__btn">
-          <SkipForward size={18} />
+          <SkipForward strokeWidth={SW} />
         </button>
       </div>
 
       {/* Track Info */}
       <div className="media__track">
-        <div className="media__album-art">🎸</div>
+        <div className="media__album-art">
+          <MusicIcon strokeWidth={SW} color="var(--accent)" />
+        </div>
         <div className="media__track-info">
           <div className="media__track-name">Rock & Roll Queen</div>
           <div className="media__track-artist">The Subways</div>
@@ -42,9 +47,9 @@ const MediaBar: React.FC = () => {
 
       {/* Queue Controls */}
       <div className="media__queue">
-        <button className="media__btn"><Search size={18} /></button>
-        <button className="media__btn"><Shuffle size={18} /></button>
-        <button className="media__btn"><Repeat size={18} /></button>
+        <button className="media__btn"><Search strokeWidth={SW} style={{ opacity: 0.4 }} /></button>
+        <button className="media__btn"><Shuffle strokeWidth={SW} style={{ opacity: 0.4 }} /></button>
+        <button className="media__btn"><Repeat strokeWidth={SW} style={{ opacity: 0.4 }} /></button>
       </div>
     </motion.div>
   );
