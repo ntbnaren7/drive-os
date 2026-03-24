@@ -1,0 +1,184 @@
+.widgets-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+  height: 100%;
+  min-height: 0;
+}
+
+/* Weather Widget */
+.weather-widget {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  padding: var(--sp-16) var(--sp-20);
+  flex-shrink: 0;
+}
+
+.weather__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.weather__location {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  margin-bottom: var(--sp-4);
+  letter-spacing: 0.3px;
+}
+
+.weather__temp-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-8);
+}
+
+.weather__temp {
+  font-family: var(--font-display);
+  font-size: 2.8rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.weather__temp-range {
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+  margin-top: var(--sp-4);
+}
+
+.weather__info {
+  text-align: right;
+}
+
+.weather__icon {
+  width: 40px;
+  height: 40px;
+  margin-bottom: var(--sp-4);
+  color: var(--text-secondary);
+}
+
+.weather__condition {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.weather__humidity {
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+/* Hourly forecast */
+.weather__forecast {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--sp-16);
+  border-top: 1px solid var(--glass-border);
+  padding-top: var(--sp-12);
+}
+
+.forecast-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-6);
+  font-size: 0.68rem;
+}
+
+.forecast-item__time {
+  color: var(--text-tertiary);
+  font-size: 0.62rem;
+}
+
+.forecast-item__icon {
+  width: 18px;
+  height: 18px;
+  color: var(--text-secondary);
+}
+
+.forecast-item__temp {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.72rem;
+}
+
+/* Schedule Widget */
+.schedule-widget {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  padding: var(--sp-16) var(--sp-20);
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.schedule__title {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: var(--sp-12);
+}
+
+.schedule__list {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.schedule-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-10);
+  padding: var(--sp-10) 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.schedule-item:last-child {
+  border-bottom: none;
+}
+
+.schedule-item:hover {
+  background: rgba(255, 255, 255, 0.02);
+  margin: 0 calc(-1 * var(--sp-8));
+  padding-left: var(--sp-8);
+  padding-right: var(--sp-8);
+  border-radius: var(--radius-sm);
+}
+
+.schedule-item__indicator {
+  width: 3px;
+  height: 28px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.schedule-item__emoji {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.schedule-item__details {
+  flex: 1;
+  min-width: 0;
+}
+
+.schedule-item__name {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.schedule-item__time {
+  font-size: 0.62rem;
+  color: var(--text-tertiary);
+  margin-top: 1px;
+}

@@ -1,0 +1,248 @@
+.dashboard-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Top icons row */
+.dashboard__top-icons {
+  display: flex;
+  gap: var(--sp-16);
+  padding: var(--sp-16) var(--sp-16) 0;
+  z-index: 2;
+}
+
+.dashboard__top-icons svg {
+  color: var(--text-tertiary);
+  width: 18px;
+  height: 18px;
+  transition: color 0.2s;
+}
+
+.dashboard__top-icons svg:hover {
+  color: var(--text-secondary);
+}
+
+/* Speedometer section */
+.speedometer-section {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--sp-8) 0 0;
+  z-index: 2;
+}
+
+.speedometer-container {
+  position: relative;
+  width: 160px;
+  height: 160px;
+}
+
+.speedometer-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.speedometer-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+.speedometer-progress {
+  fill: none;
+  stroke: url(#speedGradient);
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s var(--ease-out-expo);
+  filter: drop-shadow(0 0 6px var(--accent-glow));
+}
+
+.speedometer-value {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.speedometer-value__number {
+  font-family: var(--font-display);
+  font-size: 2.8rem;
+  font-weight: 700;
+  letter-spacing: -2px;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+.speedometer-value__unit {
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* Gear & range indicators */
+.gear-indicators {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  margin-top: var(--sp-4);
+  font-size: 0.75rem;
+}
+
+.gear-indicator {
+  color: var(--text-tertiary);
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.gear-indicator--active {
+  color: var(--text-primary);
+}
+
+.speed-limit {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  color: var(--text-tertiary);
+  font-size: 0.72rem;
+  margin-top: var(--sp-4);
+}
+
+.speed-limit__badge {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 600;
+}
+
+.drive-mode {
+  font-size: 0.72rem;
+  color: var(--accent);
+  font-weight: 500;
+  margin-top: var(--sp-4);
+}
+
+/* Car visualization */
+.car-visualization {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.car-image-container {
+  position: relative;
+  width: 200px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.car-svg-wrapper {
+  position: relative;
+  width: 180px;
+}
+
+/* Ambient light behind car */
+.car-ambient-light {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 60px;
+  background: radial-gradient(ellipse, rgba(160, 140, 255, 0.12) 0%, transparent 70%);
+  filter: blur(20px);
+  pointer-events: none;
+}
+
+.car-body {
+  width: 100%;
+  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.5));
+}
+
+.car-lock-icon {
+  position: absolute;
+  top: 55%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.car-lock-icon svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-secondary);
+}
+
+/* Bottom controls */
+.dashboard__bottom-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-20);
+  padding: var(--sp-12) var(--sp-16);
+  z-index: 2;
+}
+
+.dashboard__bottom-controls svg {
+  width: 20px;
+  height: 20px;
+  color: var(--text-tertiary);
+  transition: color 0.2s;
+  cursor: pointer;
+}
+
+.dashboard__bottom-controls svg:hover {
+  color: var(--text-primary);
+}
+
+/* Page dots */
+.dashboard__page-dots {
+  display: flex;
+  justify-content: center;
+  gap: var(--sp-4);
+  padding-bottom: var(--sp-10);
+}
+
+.page-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  transition: all 0.3s;
+}
+
+.page-dot--active {
+  background: var(--text-primary);
+  width: 14px;
+  border-radius: 3px;
+}

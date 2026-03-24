@@ -1,0 +1,92 @@
+.media-bar {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  padding: 0 var(--sp-20);
+  gap: var(--sp-6);
+}
+
+/* Playback Controls */
+.media__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-16);
+}
+
+.media__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  padding: var(--sp-4);
+}
+
+.media__btn:hover {
+  color: var(--text-primary);
+  transform: scale(1.08);
+}
+
+.media__btn--play {
+  color: var(--text-primary);
+}
+
+/* Track Info */
+.media__track {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  padding: 0 var(--sp-16);
+  min-width: 0;
+}
+
+.media__album-art {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, #4a3728, #2a1f15);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.media__track-info {
+  min-width: 0;
+}
+
+.media__track-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.media__track-artist {
+  font-size: 0.68rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Queue Controls */
+.media__queue {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-16);
+}
+
+.media__queue .media__btn svg {
+  width: 18px;
+  height: 18px;
+}

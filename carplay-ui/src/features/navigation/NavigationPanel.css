@@ -1,0 +1,201 @@
+.navigation-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Search bar */
+.nav-search {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-10);
+  padding: var(--sp-12) var(--sp-16);
+  z-index: 10;
+  position: relative;
+}
+
+.nav-search__input-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  padding: var(--sp-10) var(--sp-12);
+}
+
+.nav-search__input-wrapper svg {
+  width: 16px;
+  height: 16px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.nav-search__input {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  width: 100%;
+}
+
+.nav-search__input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.nav-search__action {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.nav-search__action:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.nav-search__action svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Map Container */
+.nav-map {
+  flex: 1;
+  position: relative;
+  background: #0e1117;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Map placeholder grid */
+.nav-map__grid {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Roads overlay */
+.nav-map__roads {
+  position: absolute;
+  inset: 0;
+}
+
+.nav-map__road {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 2;
+}
+
+.nav-map__road--main {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 3;
+}
+
+/* Street labels */
+.nav-map__label {
+  position: absolute;
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Navigation arrow */
+.nav-arrow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+}
+
+.nav-arrow__marker {
+  width: 32px;
+  height: 32px;
+  filter: drop-shadow(0 0 12px rgba(58, 155, 255, 0.5));
+}
+
+/* Zoom controls */
+.nav-zoom {
+  position: absolute;
+  top: var(--sp-12);
+  right: var(--sp-12);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  z-index: 10;
+}
+
+.nav-zoom__btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  font-weight: 300;
+  transition: all 0.2s;
+  backdrop-filter: blur(10px);
+}
+
+.nav-zoom__btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+/* POI suggestions */
+.nav-pois {
+  display: flex;
+  gap: var(--sp-8);
+  padding: var(--sp-10) var(--sp-16);
+  z-index: 10;
+  position: relative;
+  overflow-x: auto;
+}
+
+.nav-poi {
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-8) var(--sp-16);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+  white-space: nowrap;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.nav-poi:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--glass-border-light);
+}
+
+.nav-poi__name {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.nav-poi__dist {
+  font-size: 0.62rem;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
