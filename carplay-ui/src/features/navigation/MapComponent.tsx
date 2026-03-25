@@ -85,11 +85,14 @@ const MapComponent = React.forwardRef<MapComponentHandle, MapComponentProps>(({ 
     let animationFrameId: number;
     mapboxgl.accessToken = MAPBOX_TOKEN;
 
+    // Simulation center: SH 332 / Pakkam area
+    const SIM_CENTER: [number, number] = [79.6300, 11.9240];
+
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: 'mapbox://styles/mapbox/navigation-night-v1',
-      center: [79.628, 11.921],
-      zoom: 15.5,
+      center: SIM_CENTER,
+      zoom: 16.5,
       pitch: 60,
       bearing: -17.6, 
       attributionControl: false,
@@ -102,88 +105,26 @@ const MapComponent = React.forwardRef<MapComponentHandle, MapComponentProps>(({ 
     mapRef.current = map;
     addLog('[MAP] Engine Initialized');
 
+    // ==========================================
+    // SIMULATION-CENTRIC TRACKING
+    // No browser GPS needed — we follow the Swarm
+    // ==========================================
     const applyLocationLock = (lng: number, lat: number, type: GpsStatusType, sourceLabel: string) => {
-      // Allow overriding if forcing an error drop
-      if (hasLockedRef.current && type !== 'active' && sourceLabel !== 'TEST-DROP') return; 
-      
       hasLockedRef.current = true;
       setGpsStatus(type);
-      addLog(`[GPS] Locked: ${type.toUpperCase()} (${lat.toFixed(2)}, ${lng.toFixed(2)})`);
-
       setUserLocation({ lat, lng });
-      const tLoc = new mapboxgl.LngLat(lng, lat);
       window.dispatchEvent(new CustomEvent('manual-origin-snap', { detail: { lng, lat } }));
-
       setTelemetry({
         lat: Number(lat.toFixed(5)),
         lng: Number(lng.toFixed(5)),
         alt: sourceLabel
       });
-
-      if (mapRef.current) {
-        mapRef.current.easeTo({
-          center: [lng, lat],
-          zoom: type === 'ip-fallback' ? 14 : 16.5,
-          pitch: 60,
-          padding: { top: 300, bottom: 50, left: 0, right: 0 },
-          duration: 2000
-        });
-      }
     };
     applyLockRef.current = applyLocationLock;
 
-    if ('geolocation' in navigator) {
-      addLog('[GPS] Requesting Native Sensor...');
-      navigator.geolocation.watchPosition(
-        (pos) => {
-          const { longitude, latitude, heading, speed } = pos.coords;
-          realGpsRef.current = { lat: latitude, lng: longitude };
-          if (!isManualRef.current) {
-            applyLocationLock(longitude, latitude, 'active', speed ? Math.round(speed * 3.6).toString() : '0');
-          }
-        },
-        (error) => {
-          addLog(`[GPS] Native Error: ${error.message}`);
-          if (!hasLockedRef.current) setGpsStatus(error.code === 1 ? 'denied' : 'error');
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    }
-
-    (async () => {
-      addLog('[NET] Fetching ipapi.co...');
-      try {
-        const res1 = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) });
-        const data1 = await res1.json();
-        if (data1 && data1.latitude && data1.longitude) {
-          applyLocationLock(data1.longitude, data1.latitude, 'ip-fallback', 'IP-EST');
-          return;
-        }
-      } catch (e) { addLog('[NET] ipapi.co failed.'); }
-
-      addLog('[NET] Fetching ipinfo.io...');
-      try {
-        const res2 = await fetch('https://ipinfo.io/json', { signal: AbortSignal.timeout(5000) });
-        const data2 = await res2.json();
-        if (data2 && data2.loc) {
-          const [lat, lng] = data2.loc.split(',').map(Number);
-          applyLocationLock(lng, lat, 'ip-fallback', 'IP-EST');
-          return;
-        }
-      } catch (e) { addLog('[NET] ipinfo.io failed.'); }
-
-      if (!hasLockedRef.current) {
-        addLog('[ERR] All Nets Failed. Using Safe Harbor.');
-        applyLocationLock(79.628, 11.921, 'error', 'OFFLINE');
-      }
-    })();
-
-    setTimeout(() => {
-      if (!hasLockedRef.current) {
-        addLog('[ERR] 8s Deadlock Timeout. Dropping Harbor.');
-        applyLocationLock(79.628, 11.921, 'error', 'OFFLINE');
-      }
-    }, 8000);
+    // Lock to simulation center immediately
+    applyLocationLock(SIM_CENTER[0], SIM_CENTER[1], 'active', 'V2X-SIM');
+    addLog('[V2X] Simulation Mode — Tracking Ego Car (veh_103)');
 
     // Global Tracking Variables
     let currentLoc = { lng: 79.628, lat: 11.921 };
@@ -406,6 +347,7 @@ const MapComponent = React.forwardRef<MapComponentHandle, MapComponentProps>(({ 
       });
 
       const vehiclesRef = fbRef(db, 'vehicles');
+      let hasInitialZoom = false;
       const unsubVehicles = onValue(vehiclesRef, (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
@@ -417,11 +359,14 @@ const MapComponent = React.forwardRef<MapComponentHandle, MapComponentProps>(({ 
           if (veh.location) {
              coords.push([veh.location.lon, veh.location.lat]);
              
+             // Create role-aware markers
              let marker = remoteVehiclesRef.current[vid];
              if (!marker) {
                const el = document.createElement('div');
                el.className = 'v2x-vehicle-marker';
-               el.innerHTML = `<div style="width:14px; height:14px; background:#3a9bff; border:2px solid #fff; border-radius:50%; box-shadow:0 0 12px rgba(58,155,255,0.8);"></div>`;
+               const color = veh.role === 'ego' ? '#30d158' : veh.role === 'scout' ? '#ff9f0a' : '#3a9bff';
+               const label = veh.role === 'ego' ? 'EGO' : veh.role === 'scout' ? 'SCT' : 'VAL';
+               el.innerHTML = `<div style="position:relative;"><div style="width:14px; height:14px; background:${color}; border:2px solid #fff; border-radius:50%; box-shadow:0 0 12px ${color}80;"></div><div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:8px;font-family:'JetBrains Mono',monospace;color:${color};font-weight:700;letter-spacing:0.5px;white-space:nowrap;">${label}</div></div>`;
                marker = new mapboxgl.Marker({ element: el })
                  .setLngLat([veh.location.lon, veh.location.lat])
                  .addTo(mapRef.current!);
@@ -429,8 +374,28 @@ const MapComponent = React.forwardRef<MapComponentHandle, MapComponentProps>(({ 
              } else {
                marker.setLngLat([veh.location.lon, veh.location.lat]);
              }
+
+             // Track Ego Car for map center
+             if (vid === 'veh_103' && veh.location) {
+               targetLoc = { lng: veh.location.lon, lat: veh.location.lat };
+               targetHeading = veh.heading || 0;
+               applyLockRef.current?.(veh.location.lon, veh.location.lat, 'active', 'V2X-SIM');
+             }
           }
         });
+
+        v2vCoordsRef.current = coords;
+
+        // Auto-zoom to fleet bounding box on first data
+        if (!hasInitialZoom && coords.length > 1 && mapRef.current) {
+          hasInitialZoom = true;
+          const lngs = coords.map(c => c[0]);
+          const lats = coords.map(c => c[1]);
+          mapRef.current.fitBounds(
+            [[Math.min(...lngs) - 0.002, Math.min(...lats) - 0.002], [Math.max(...lngs) + 0.002, Math.max(...lats) + 0.002]],
+            { padding: { top: 100, bottom: 80, left: 250, right: 280 }, duration: 2000, pitch: 55 }
+          );
+        }
       });
 
       const eventsRef = fbRef(db, 'events');

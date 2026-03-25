@@ -6,16 +6,16 @@
 
 :root {
   --bg-primary: #0a0a0a;
-  --bg-secondary: #111111;
-  --bg-tertiary: #1a1a1a;
-  --border: #2a2a2a;
+  --bg-secondary: rgba(12, 14, 20, 0.85);
+  --bg-tertiary: rgba(20, 24, 32, 0.8);
+  --border: rgba(255, 255, 255, 0.08);
   --text-primary: #e0e0e0;
-  --text-secondary: #888;
-  --amber: #f0a500;
-  --amber-dim: rgba(240, 165, 0, 0.3);
+  --text-secondary: rgba(255, 255, 255, 0.5);
+  --amber: #3a9bff;
+  --amber-dim: rgba(58, 155, 255, 0.2);
   --red-alert: #ff453a;
   --green-ok: #30d158;
-  --cyan-link: #64d2ff;
+  --cyan-link: #3a9bff;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -38,6 +38,8 @@
   align-items: center;
   padding: 12px 24px;
   background: var(--bg-secondary);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -454,12 +456,15 @@
   display: flex;
   flex-direction: column;
   background: var(--bg-secondary);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   overflow-y: auto;
 }
 
 .diag-section {
   padding: 16px 20px;
   border-bottom: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .diag-title {
