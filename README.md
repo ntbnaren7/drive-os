@@ -7,9 +7,7 @@ DriveOS is a comprehensive, modular intelligent vehicle ecosystem designed to br
 
 ---
 
-## 🏗️ System Architecture
-
-The ecosystem is composed of four primary pillars, each handling a distinct layer of the intelligent vehicle stack.
+The ecosystem is composed of five primary pillars, each handling a distinct layer of the intelligent vehicle stack.
 
 ```mermaid
 graph TD
@@ -17,26 +15,28 @@ graph TD
     B -->|Sobel + YOLOv8s| C{Hazard Logic}
     C -->|Detected!| D[Firebase Cloud V2X]
     D -->|Real-time Sync| E[DriveOS CarPlay UI]
+    D -->|Mobile Sync| G[DriveOS Mobile Companion]
     F[Pothole ML Engine] -->|Trained Weights .onnx| B
     E -->|Manual Override| D
     B -->|Snapshot Evidence| D
+    G -->|Manual Flag| D
 ```
 
 ### 1. [CarPlay UI](./carplay-ui) — *The Command Center*
 The central human-machine interface (HMI). A premium, glassmorphic React dashboard that integrates maps, media, and the live Benthic AI feed.
-- **Tech**: React 18, Vite, Framer Motion, Lucide, Mapbox.
 
 ### 2. [Benthic Vision](./benthic-vision) — *The Edge Intelligence*
 The specialized vision node designed for road surface analysis. It runs high-speed on-device inference using WASM to detect potholes and surface anomalies.
-- **Tech**: ONNX Runtime Web, OpenCV (Sobel Analysis), TensorFlow/YOLO logic.
 
 ### 3. [Pothole ML Engine](./pothole-ml-engine) — *The Neural Backbone*
 The standalone training pipeline for fine-tuning YOLOv8 models specifically for road textures and screen-capture glare compensation.
-- **Tech**: Ultralytics YOLOv8s, PyTorch (CUDA 12.1), Python 3.11.
 
 ### 4. [Backend](./backend) — *The V2X Uplink*
 The infrastructure layer managing real-time data flow and vehicle telemetry synchronization.
-- **Tech**: Google Firebase Realtime Database.
+
+### 5. [Mobile Companion](./driveos_mobile_app) — *The On-the-Go Mesh Node*
+The high-performance Android companion designed for real-time fleet tracking and hazard synchronization via a premium Bento-Style interface.
+- **Tech**: Flutter, Dart, flutter_map (CartoDB Dark).
 
 ---
 
