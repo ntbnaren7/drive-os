@@ -20,7 +20,6 @@ const RADIUS = 90; // Larger radius for premium feel
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const ARC_LENGTH = CIRCUMFERENCE * 0.65; // ~234 degrees
 const PROGRESS = (SPEED / MAX_SPEED) * ARC_LENGTH;
-const SW = 1.2;
 
 const DashboardPanel: React.FC = () => {
   return (

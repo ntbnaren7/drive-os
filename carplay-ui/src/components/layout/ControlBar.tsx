@@ -4,7 +4,8 @@ import { Play, SkipBack, SkipForward, Music, Thermometer, Wind, Grid } from 'luc
 
 const ControlBar: React.FC = () => {
   return (
-    <GlassCard className="control-bar" style={{ width: '100%', height: '100%', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', padding: '0 var(--spacing-lg)' }}>
+    <GlassCard className="control-bar">
+      <div style={{ width: '100%', height: '100%', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', padding: '0 var(--spacing-lg)' }}>
       <div style={{ display: 'flex', gap: 'var(--spacing-xl)', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
           <Thermometer size={20} color="var(--text-muted)" />
@@ -35,6 +36,7 @@ const ControlBar: React.FC = () => {
           <span style={{ fontWeight: 600 }}>22.5°</span>
           <Thermometer size={20} color="var(--text-muted)" />
         </div>
+      </div>
       </div>
     </GlassCard>
   );

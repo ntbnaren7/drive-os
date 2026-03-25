@@ -1,5 +1,5 @@
 import React from 'react';
-import { Battery, Signal, Clock } from 'lucide-react';
+import { Battery, Signal } from 'lucide-react';
 
 const StatusBar: React.FC = () => {
   return (

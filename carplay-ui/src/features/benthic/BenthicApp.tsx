@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { db } from '../../services/firebase';
 import { ref, push, set, onValue } from 'firebase/database';
 import * as ort from 'onnxruntime-web';
+import { Shield, Radar, Activity, Image as ImageIcon, Terminal, Play, Square } from 'lucide-react';
+import { BentoCard } from './BentoCard';
 import './BenthicApp.css';
 
 declare global {
@@ -501,7 +503,8 @@ function BenthicApp() {
       </header>
 
       <main className="benthic-main">
-        <section className={`sensor-feed ${flashDetect ? 'flash-detect' : ''}`}>
+        {/* CORE VISION VIEWPORT (8 Columns Wide, 2 Rows High) */}
+        <BentoCard gridArea="1 / 1 / 3 / 9" className={`sensor-feed ${flashDetect ? 'flash-detect' : ''}`} flexCol={true}>
           <div className="feed-header">
             <span className="feed-label">CONTINUOUS PIPELINE [{inferenceTime > 0 ? Math.min(60, Math.round(1000 / inferenceTime)) : '--'} FPS]</span>
             <span className="feed-mode">{sensorMode}</span>
@@ -548,7 +551,9 @@ function BenthicApp() {
           </div>
 
           <div className="feed-controls">
-            <button className="ctrl-btn" onClick={toggleWebcam}>{isStreaming ? 'STOP HARDWARE' : 'START HARDWARE'}</button>
+            <button className="ctrl-btn" onClick={toggleWebcam}>
+              {isStreaming ? <><Square size={12} style={{marginRight: 6}}/> STOP HARDWARE</> : <><Play size={12} style={{marginRight: 6}}/> START HARDWARE</>}
+            </button>
             {videoDevices.length > 0 && (
               <select 
                 value={selectedDeviceId} 
@@ -556,8 +561,8 @@ function BenthicApp() {
                 disabled={isStreaming}
                 style={{
                   backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                  color: '#00ffcc',
-                  border: '1px solid #00ffcc',
+                  color: '#3a9bff',
+                  border: '1px solid #3a9bff',
                   marginLeft: '10px',
                   padding: '4px 8px',
                   fontFamily: 'monospace',
@@ -575,106 +580,132 @@ function BenthicApp() {
             )}
             <div className="shutter-label">SHUTTER: 1.0s / ISO: AUTO</div>
           </div>
-        </section>
+        </BentoCard>
 
-        <aside className="diagnostics">
-          <div className="diag-section">
-            <div className="diag-title">AUTONOMOUS ENGINE STATUS</div>
-            <div className="diag-grid">
-              <div className="diag-item">
-                <span className="diag-label">SURFACE STATE</span>
-                <span className={`diag-value status-text-${roadStatus.toLowerCase()}`} style={{ fontWeight: 'bold' }}>{roadStatus}</span>
-              </div>
-              <div className="diag-item">
-                <span className="diag-label">TEMPORAL BUFFER</span>
-                <span className="diag-value">[{hazardFrames}/2] FRMS</span>
-              </div>
-              <div className="diag-item">
-                <span className="diag-label">ML DETECTIONS</span>
-                <span className="diag-value mono" style={{ fontSize: '0.65rem' }}>{lastDetections.length > 0 ? lastDetections.join(', ') : 'NONE'}</span>
-              </div>
-              <div className="diag-item">
-                <span className="diag-label">ANOMALY_SCORE</span>
-                <span className={`diag-value ${visionScore > visionThreshold ? 'warn' : 'accent'}`}>{visionScore}</span>
-              </div>
+        {/* TELEMETRY CARDS (Right 4 Columns) */}
+        
+        {/* ML Engine Status */}
+        <BentoCard 
+          gridArea="1 / 9 / 2 / 13" 
+          title="AUTONOMOUS ENGINE STATUS" 
+          icon={<Shield size={16} />}
+          className={visionScore > visionThreshold ? 'glow-alert' : ''}
+        >
+          <div className="diag-grid">
+            <div className="diag-item">
+              <span className="diag-label">SURFACE STATE</span>
+              <span className={`diag-value status-text-${roadStatus.toLowerCase()}`} style={{ fontWeight: 'bold' }}>{roadStatus}</span>
             </div>
-            
-            <div className="diag-grid" style={{ marginTop: '10px' }}>
-              <div className="diag-item wide">
-                <span className="diag-label">OVERRIDE THRESHOLD ({visionThreshold}%)</span>
-                <input 
-                  type="range" 
-                  min="10" 
-                  max="100" 
-                  value={visionThreshold} 
-                  onChange={(e) => setVisionThreshold(Number(e.target.value))}
-                  className="threshold-slider"
-                />
-              </div>
+            <div className="diag-item">
+              <span className="diag-label">TEMPORAL BUFFER</span>
+              <span className="diag-value">[{hazardFrames}/2] FRMS</span>
+            </div>
+            <div className="diag-item">
+              <span className="diag-label">ML DETECTIONS</span>
+              <span className="diag-value mono" style={{ fontSize: '0.65rem' }}>{lastDetections.length > 0 ? lastDetections.join(', ') : 'NONE'}</span>
+            </div>
+            <div className="diag-item">
+              <span className="diag-label">ANOMALY_SCORE</span>
+              <span className={`diag-value ${visionScore > visionThreshold ? 'warn' : 'accent'}`} style={{ fontSize: '1.4rem' }}>{visionScore}</span>
+            </div>
+          </div>
+          
+          <div className="diag-grid" style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <div className="diag-item wide">
+              <span className="diag-label">OVERRIDE THRESHOLD ({visionThreshold}%)</span>
+              <input 
+                type="range" 
+                min="10" 
+                max="100" 
+                value={visionThreshold} 
+                onChange={(e) => setVisionThreshold(Number(e.target.value))}
+                className="threshold-slider"
+                style={{ width: '100%', accentColor: '#3a9bff' }}
+              />
+            </div>
+          </div>
+        </BentoCard>
+
+        {/* Swarm & Snapshot Demetrics */}
+        <BentoCard 
+          gridArea="2 / 9 / 3 / 13" 
+          title="SNAPSHOT DEMETRICS & SWARM" 
+          icon={<Activity size={16} />}
+        >
+          <div className="diag-grid">
+            <div className="diag-item">
+              <span className="diag-label">UPTIME</span>
+              <span className="diag-value">{formatUptime(uptime)}</span>
+            </div>
+            <div className="diag-item">
+              <span className="diag-label">BANDWIDTH SAVED</span>
+              <span className="diag-value warn">{scannedCount - detectionCount} FRMS</span>
+            </div>
+            <div className="diag-item">
+              <span className="diag-label">AVG LATENCY</span>
+              <span className="diag-value" style={{ color: '#30d158' }}>{inferenceTime}ms</span>
+            </div>
+            <div className="diag-item">
+              <span className="diag-label">DETECTED</span>
+              <span className="diag-value warn">{detectionCount}</span>
             </div>
           </div>
 
-          <div className="diag-section">
-            <div className="diag-title">SNAPSHOT DEMETRICS</div>
-            <div className="diag-grid">
-              <div className="diag-item">
-                <span className="diag-label">UPTIME</span>
-                <span className="diag-value accent">{formatUptime(uptime)}</span>
-              </div>
-              <div className="diag-item">
-                <span className="diag-label">BANDWIDTH SAVED</span>
-                <span className="diag-value warn">{scannedCount - detectionCount} FRMS</span>
-              </div>
-              <div className="diag-item">
-                <span className="diag-label">AVG LATENCY</span>
-                <span className="diag-value">{inferenceTime}ms</span>
-              </div>
-              <div className="diag-item">
-                <span className="diag-label">DETECTED</span>
-                <span className="diag-value warn">{detectionCount}</span>
-              </div>
+          <div className="diag-grid" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <div className="diag-item wide">
+              <span className="diag-label">AI ENGINE</span>
+              <span className="diag-value" style={{ fontSize: '0.7rem', color: modelReady ? '#3a9bff' : '#ff6b6b' }}>
+                {modelReady ? 'YOLOv8n ONNX v6 ✓' : 'Loading Model...'}
+              </span>
+            </div>
+            <div className="diag-item wide">
+              <span className="diag-label">GPS SYNC</span>
+              <span className="diag-value mono" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                {vehicleLat.toFixed(5)}, {vehicleLon.toFixed(5)}
+              </span>
             </div>
           </div>
+        </BentoCard>
 
-          <div className="diag-section">
-            <div className="diag-title">LATEST EVIDENCE</div>
-            <div className="evidence-frame">
-              {evidenceUrl ? (
-                <img src={evidenceUrl} alt="Evidence" className="evidence-img" />
-              ) : (
-                <div className="evidence-placeholder">NO DETECTION LOGGED</div>
-              )}
-            </div>
+        {/* BOTTOM ROW (Spans full width) */}
+        
+        {/* Latest Evidence */}
+        <BentoCard 
+          gridArea="3 / 1 / 4 / 5" 
+          title="LATEST EVIDENCE" 
+          icon={<ImageIcon size={16} />}
+        >
+          <div className="evidence-frame">
+            {evidenceUrl ? (
+              <img src={evidenceUrl} alt="Evidence" className="evidence-img" />
+            ) : (
+              <div className="evidence-placeholder" style={{color: 'rgba(58, 155, 255, 0.4)'}}>AWAITING HAZARD DETECTION</div>
+            )}
           </div>
+        </BentoCard>
 
-          <div className="diag-section">
-            <div className="diag-title">VISION DEBUGGER (X-RAY)</div>
-            <div className="evidence-frame" style={{ border: '1px solid #1e293b', background: '#0f172a' }}>
-              <canvas ref={debugCanvasRef} width={160} height={120} style={{ width: '100%', height: 'auto', imageRendering: 'pixelated' }} />
-            </div>
+        {/* X-Ray Debugger */}
+        <BentoCard 
+          gridArea="3 / 5 / 4 / 9" 
+          title="VISION DEBUGGER (X-RAY)" 
+          icon={<Radar size={16} />}
+        >
+          <div className="evidence-frame" style={{ border: '1px solid rgba(58, 155, 255, 0.3)', background: 'rgba(0,15,30,0.5)' }}>
+            <canvas ref={debugCanvasRef} width={160} height={120} style={{ width: '100%', height: 'auto', imageRendering: 'pixelated', opacity: 0.8 }} />
           </div>
+        </BentoCard>
 
-          <div className="diag-section">
-            <div className="diag-title">V2X UPLINK STATUS</div>
-            <div className="diag-grid">
-              <div className="diag-item wide">
-                <span className="diag-label">AI ENGINE</span>
-                <span className="diag-value" style={{ fontSize: '0.7rem', color: modelReady ? '#00ffcc' : '#ff6b6b' }}>{modelReady ? 'YOLOv8n ONNX v6 ✓' : 'Loading Model...'}</span>
-              </div>
-              <div className="diag-item wide">
-                <span className="diag-label">GPS SYNC</span>
-                <span className="diag-value mono">{vehicleLat.toFixed(5)}, {vehicleLon.toFixed(5)}</span>
-              </div>
-            </div>
+        {/* System Logs */}
+        <BentoCard 
+          gridArea="3 / 9 / 4 / 13" 
+          title="SNAPSHOT LOG" 
+          icon={<Terminal size={16} />}
+        >
+          <div className="log-feed">
+            {logs.map((log, i) => <div key={i} className="log-line">{log}</div>)}
           </div>
+        </BentoCard>
 
-          <div className="diag-section logs-section">
-            <div className="diag-title">SNAPSHOT LOG</div>
-            <div className="log-feed">
-              {logs.map((log, i) => <div key={i} className="log-line">{log}</div>)}
-            </div>
-          </div>
-        </aside>
       </main>
     </div>
   );
