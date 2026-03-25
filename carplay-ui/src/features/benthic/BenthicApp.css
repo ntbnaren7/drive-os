@@ -29,54 +29,36 @@
   height: 100%;
   width: 100%;
   background: var(--bg-primary);
+  overflow: hidden;
 }
 
-/* ── HEADER ── */
-.benthic-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 24px;
-  background: var(--bg-secondary);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-.header-left {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
-
-.header-logo {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: var(--amber);
-  letter-spacing: 4px;
-}
-
-.header-sub {
-  font-size: 0.65rem;
-  color: var(--text-secondary);
-  letter-spacing: 2px;
+/* ── FLOATING V2X MESH PILL ── */
+.mesh-pill-overlay {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
 }
 
 .mesh-status {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.7rem;
-  letter-spacing: 1px;
-  padding: 6px 14px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 1.5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: rgba(12, 14, 20, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .mesh-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: currentColor;
 }
@@ -102,21 +84,30 @@
 
 /* ── MAIN BENTO GRID ── */
 .benthic-main {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  grid-auto-rows: minmax(100px, auto);
-  gap: 16px;
-  padding: 16px;
+  display: grid !important;
+  grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+  grid-template-rows: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 0.85fr) !important;
+  gap: 12px !important;
+  padding: 12px;
+  width: 100%;
+  height: 100%;
   flex: 1;
   overflow: hidden;
 }
+
+/* Fallback Grid Map */
+.grid-vision { grid-area: 1 / 1 / 3 / 9; }
+.grid-engine { grid-area: 1 / 9 / 2 / 13; }
+.grid-swarm { grid-area: 2 / 9 / 3 / 13; }
+.grid-evidence { grid-area: 3 / 1 / 4 / 5; }
+.grid-xray { grid-area: 3 / 5 / 4 / 9; }
+.grid-logs { grid-area: 3 / 9 / 4 / 13; }
 
 /* ── SENSOR FEED ── */
 .sensor-feed {
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
-  border-right: 1px solid var(--border);
   transition: box-shadow 0.3s ease;
 }
 
@@ -128,7 +119,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 20px;
+  padding: 8px 16px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
 }
@@ -154,6 +145,7 @@
   position: relative;
   overflow: hidden;
   background: #050505;
+  min-height: 0;
 }
 
 /* Inference Scan Overlay */
@@ -510,7 +502,7 @@
 
 .diag-value {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -523,7 +515,9 @@
 /* Evidence Frame */
 .evidence-frame {
   width: 100%;
-  aspect-ratio: 16/9;
+  flex: 1;
+  min-height: 0;
+  max-height: 100%;
   background: rgba(5, 5, 5, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 8px;
@@ -531,9 +525,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 8px;
+  margin-top: 4px;
   position: relative;
   box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.evidence-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.evidence-frame canvas {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 .evidence-img {

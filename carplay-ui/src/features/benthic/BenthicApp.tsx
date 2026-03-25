@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { db } from '../../services/firebase';
 import { ref, push, set, onValue } from 'firebase/database';
 import * as ort from 'onnxruntime-web';
-import { Shield, Radar, Activity, Image as ImageIcon, Terminal, Play, Square } from 'lucide-react';
+import { ScanEye, Waves, FileSearch, Crosshair, ScrollText, Play, Square } from 'lucide-react';
 import { BentoCard } from './BentoCard';
 import './BenthicApp.css';
 
@@ -489,22 +489,16 @@ function BenthicApp() {
 
   return (
     <div className="benthic-root">
-      <header className="benthic-header">
-        <div className="header-left">
-          <div className="header-logo">BENTHIC</div>
-          <div className="header-sub">SNAP-INTEL EDGE v1.1</div>
-        </div>
-        <div className="header-right">
-          <div className={`mesh-status status-${meshStatus.toLowerCase()}`}>
-            <span className="mesh-dot" />
-            V2X MESH: {meshStatus}
-          </div>
-        </div>
-      </header>
-
       <main className="benthic-main">
         {/* CORE VISION VIEWPORT (8 Columns Wide, 2 Rows High) */}
-        <BentoCard gridArea="1 / 1 / 3 / 9" className={`sensor-feed ${flashDetect ? 'flash-detect' : ''}`} flexCol={true}>
+        <BentoCard gridArea="1 / 1 / 3 / 9" className={`grid-vision sensor-feed ${flashDetect ? 'flash-detect' : ''}`} flexCol={true}>
+          {/* Floating V2X Mesh Pill */}
+          <div className="mesh-pill-overlay">
+            <div className={`mesh-status status-${meshStatus.toLowerCase()}`}>
+              <span className="mesh-dot" />
+              V2X: {meshStatus}
+            </div>
+          </div>
           <div className="feed-header">
             <span className="feed-label">CONTINUOUS PIPELINE [{inferenceTime > 0 ? Math.min(60, Math.round(1000 / inferenceTime)) : '--'} FPS]</span>
             <span className="feed-mode">{sensorMode}</span>
@@ -587,9 +581,9 @@ function BenthicApp() {
         {/* ML Engine Status */}
         <BentoCard 
           gridArea="1 / 9 / 2 / 13" 
-          title="AUTONOMOUS ENGINE STATUS" 
-          icon={<Shield size={16} />}
-          className={visionScore > visionThreshold ? 'glow-alert' : ''}
+          title="ENGINE STATUS" 
+          icon={<ScanEye size={16} strokeWidth={1.2} />}
+          className={`grid-engine ${visionScore > visionThreshold ? 'glow-alert' : ''}`}
         >
           <div className="diag-grid">
             <div className="diag-item">
@@ -629,8 +623,9 @@ function BenthicApp() {
         {/* Swarm & Snapshot Demetrics */}
         <BentoCard 
           gridArea="2 / 9 / 3 / 13" 
-          title="SNAPSHOT DEMETRICS & SWARM" 
-          icon={<Activity size={16} />}
+          title="DEMETRICS & SWARM" 
+          icon={<Waves size={16} strokeWidth={1.2} />}
+          className="grid-swarm"
         >
           <div className="diag-grid">
             <div className="diag-item">
@@ -672,8 +667,9 @@ function BenthicApp() {
         {/* Latest Evidence */}
         <BentoCard 
           gridArea="3 / 1 / 4 / 5" 
-          title="LATEST EVIDENCE" 
-          icon={<ImageIcon size={16} />}
+          title="EVIDENCE" 
+          icon={<FileSearch size={16} strokeWidth={1.2} />}
+          className="grid-evidence"
         >
           <div className="evidence-frame">
             {evidenceUrl ? (
@@ -687,8 +683,9 @@ function BenthicApp() {
         {/* X-Ray Debugger */}
         <BentoCard 
           gridArea="3 / 5 / 4 / 9" 
-          title="VISION DEBUGGER (X-RAY)" 
-          icon={<Radar size={16} />}
+          title="X-RAY" 
+          icon={<Crosshair size={16} strokeWidth={1.2} />}
+          className="grid-xray"
         >
           <div className="evidence-frame" style={{ border: '1px solid rgba(58, 155, 255, 0.3)', background: 'rgba(0,15,30,0.5)' }}>
             <canvas ref={debugCanvasRef} width={160} height={120} style={{ width: '100%', height: 'auto', imageRendering: 'pixelated', opacity: 0.8 }} />
@@ -698,8 +695,9 @@ function BenthicApp() {
         {/* System Logs */}
         <BentoCard 
           gridArea="3 / 9 / 4 / 13" 
-          title="SNAPSHOT LOG" 
-          icon={<Terminal size={16} />}
+          title="LOG" 
+          icon={<ScrollText size={16} strokeWidth={1.2} />}
+          className="grid-logs"
         >
           <div className="log-feed">
             {logs.map((log, i) => <div key={i} className="log-line">{log}</div>)}

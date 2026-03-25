@@ -33,7 +33,7 @@ export const BentoCard: React.FC<BentoCardProps> = ({
           {title && <h3 className="bento-card__title">{title}</h3>}
         </div>
       )}
-      <div className="bento-card__content" style={{ flex: 1, display: 'flex', flexDirection: flexCol ? 'column' : 'row' }}>
+      <div className="bento-card__content" style={{ flex: 1, display: 'flex', flexDirection: flexCol ? 'column' : 'row', overflow: 'hidden' }}>
         {children}
       </div>
     </div>
