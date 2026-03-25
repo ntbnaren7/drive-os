@@ -64,6 +64,18 @@ interface VehicleNode {
   stats: { events_generated: number; events_verified: number; };
 }
 
+interface ComponentHealth {
+  suspension_health: number;   // 0-100
+  brake_integrity: number;     // 0-100
+  tire_pressure: number;       // 0-100
+  vitality_index: number;      // Weighted composite 0-100
+  imu_buffer: number[];        // Last 64 samples for 1-D CNN
+  last_impact_g: number;
+  km_since_service: number;
+  predicted_km_to_failure: number;
+  status: 'OPTIMAL' | 'CAUTION' | 'CRITICAL';
+}
+
 interface Waypoint { lat: number; lon: number; }
 
 // ========================================
@@ -125,7 +137,16 @@ class SwarmDirector {
     role: 'scout' | 'validator' | 'ego';
     eventsGenerated: number;
     eventsVerified: number;
-    detectedPotholes: Set<string>; // Track which potholes this vehicle has already flagged
+    detectedPotholes: Set<string>;
+    // Health State
+    health: {
+      suspension: number;
+      brakes: number;
+      tires: number;
+      imuBuffer: number[];
+      lastImpactG: number;
+      kmDriven: number;
+    };
   }> = new Map();
 
   // Master event registry (shared across all vehicles)
@@ -157,6 +178,7 @@ class SwarmDirector {
     this.clearPreviousData();
     this.startSimulationLoop();
     this.startRSHIWorker();
+    this.startHealthWorker();
   }
 
   private initVehicles() {
@@ -181,6 +203,14 @@ class SwarmDirector {
         eventsGenerated: 0,
         eventsVerified: 0,
         detectedPotholes: new Set(),
+        health: {
+          suspension: 92 + Math.random() * 8,
+          brakes: 88 + Math.random() * 12,
+          tires: 90 + Math.random() * 10,
+          imuBuffer: Array(64).fill(0).map(() => 0.1 + Math.random() * 0.3),
+          lastImpactG: 0,
+          kmDriven: Math.floor(Math.random() * 5000),
+        },
       });
     });
   }
@@ -245,6 +275,7 @@ class SwarmDirector {
           console.log(`   ⏳ Awaiting validation from swarm...\n`);
 
           this.publishEvent(entry, vehicleId, imuPeak);
+          this.applyImpactDamage(vehicleId, pothole.severity);
           
         } else if (!existing.sources.includes(vehicleId)) {
           // VALIDATION (Another vehicle confirms it)
@@ -273,6 +304,7 @@ class SwarmDirector {
           }
 
           this.publishEvent(existing, vehicleId, 2.0 + Math.random() * 1.5);
+          this.applyImpactDamage(vehicleId, pothole.severity);
         }
       }
     }
@@ -479,6 +511,85 @@ class SwarmDirector {
     set(ref(db, `events/${entry.event_id}`), eventPayload).catch((e) =>
       console.warn("\nSync fail:", e.message)
     );
+  }
+
+  // -------------------------------------------------------
+  // HEALTH DEGRADATION on Pothole Impact
+  // -------------------------------------------------------
+  private applyImpactDamage(vehicleId: string, severity: number) {
+    const vehicle = this.vehicles.get(vehicleId);
+    if (!vehicle) return;
+
+    const h = vehicle.health;
+    const impactG = 1.5 + severity * 3.5 + Math.random() * 1.5;
+    h.lastImpactG = Number(impactG.toFixed(1));
+
+    // Degradation proportional to severity and speed
+    const speedFactor = vehicle.speed / 60;
+    const suspDmg = severity * 3.5 * speedFactor;
+    const brakeDmg = severity * 1.8 * speedFactor;
+    const tireDmg = severity * 2.2 * speedFactor;
+
+    h.suspension = Math.max(0, h.suspension - suspDmg);
+    h.brakes = Math.max(0, h.brakes - brakeDmg);
+    h.tires = Math.max(0, h.tires - tireDmg);
+
+    // Inject impact spike into IMU buffer
+    const spikeLen = 4 + Math.floor(Math.random() * 4);
+    for (let i = 0; i < spikeLen; i++) {
+      h.imuBuffer.push(impactG * (0.6 + Math.random() * 0.4));
+      h.imuBuffer.shift();
+    }
+  }
+
+  // -------------------------------------------------------
+  // HEALTH TELEMETRY WORKER
+  // Publishes component health to Firebase every 3s
+  // -------------------------------------------------------
+  private startHealthWorker() {
+    setInterval(() => {
+      if (!db) return;
+
+      this.vehicles.forEach((vehicle, id) => {
+        const h = vehicle.health;
+
+        // Natural wear per tick (very gradual)
+        h.suspension = Math.max(0, h.suspension - 0.02);
+        h.brakes = Math.max(0, h.brakes - 0.015);
+        h.tires = Math.max(0, h.tires - 0.01);
+        h.kmDriven += (vehicle.speed / 3600) * 3;
+
+        // Add normal road noise to IMU buffer
+        h.imuBuffer.push(0.1 + Math.random() * 0.4);
+        h.imuBuffer.shift();
+
+        // Calculate Vitality Index (weighted average)
+        const vitality = Math.round(
+          h.suspension * 0.45 + h.brakes * 0.30 + h.tires * 0.25
+        );
+
+        // Predict remaining km based on degradation rate
+        const avgHealth = (h.suspension + h.brakes + h.tires) / 3;
+        const predictedKm = Math.max(0, Math.round((avgHealth / 100) * 15000));
+
+        const status: 'OPTIMAL' | 'CAUTION' | 'CRITICAL' =
+          vitality > 75 ? 'OPTIMAL' : vitality > 45 ? 'CAUTION' : 'CRITICAL';
+
+        const payload: ComponentHealth = {
+          suspension_health: Math.round(h.suspension * 10) / 10,
+          brake_integrity: Math.round(h.brakes * 10) / 10,
+          tire_pressure: Math.round(h.tires * 10) / 10,
+          vitality_index: vitality,
+          imu_buffer: h.imuBuffer.map(v => Number(v.toFixed(2))),
+          last_impact_g: h.lastImpactG,
+          km_since_service: Math.round(h.kmDriven),
+          predicted_km_to_failure: predictedKm,
+          status,
+        };
+
+        set(ref(db!, `vehicle_health/${id}`), payload).catch(() => {});
+      });
+    }, 3000);
   }
 }
 

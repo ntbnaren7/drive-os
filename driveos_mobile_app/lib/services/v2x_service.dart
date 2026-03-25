@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -11,27 +10,35 @@ import '../models/vehicle.dart';
 class V2XService extends ChangeNotifier {
   final List<V2XEvent> _events = [];
   final List<Vehicle> _vehicles = [];
+  final Map<String, VehicleHealth> _healthMap = {};
   bool _isConnected = false;
   DatabaseReference? _eventsRef;
   DatabaseReference? _vehiclesRef;
+  DatabaseReference? _healthRef;
   
   final MapController mapController = MapController();
   
-  // Alert stream for UI snackbars
   final StreamController<V2XEvent> _alertStreamController = StreamController<V2XEvent>.broadcast();
   Stream<V2XEvent> get hazardAlerts => _alertStreamController.stream;
 
   List<V2XEvent> get events => _events;
   List<Vehicle> get vehicles => _vehicles;
+  Map<String, VehicleHealth> get healthMap => _healthMap;
   bool get isConnected => _isConnected;
 
-  // Parity Waypoints from simulation.ts
-  static const LatLng pA1 = LatLng(11.9200, 79.6308);
-  static const LatLng pA2 = LatLng(11.9218, 79.6248);
-  static const LatLng pB1 = LatLng(11.9260, 79.6288);
-  static const LatLng pB2 = LatLng(11.9188, 79.6319);
-  static const LatLng pC1 = LatLng(11.9234, 79.6303);
-  static const LatLng pC2 = LatLng(11.9242, 79.6361);
+  /// Get the "ego" vehicle's health (veh_103) or first available
+  VehicleHealth? get egoHealth {
+    if (_healthMap.containsKey('veh_103')) return _healthMap['veh_103'];
+    if (_healthMap.isNotEmpty) return _healthMap.values.first;
+    return null;
+  }
+
+  /// Overall fleet vitality (average of all vehicles)
+  int get fleetVitality {
+    if (_healthMap.isEmpty) return 100;
+    final sum = _healthMap.values.fold<int>(0, (s, h) => s + h.vitalityIndex);
+    return (sum / _healthMap.length).round();
+  }
 
   V2XService() {
     _initFirebase();
@@ -39,9 +46,9 @@ class V2XService extends ChangeNotifier {
 
   void centerOnFleet() {
     if (_vehicles.isNotEmpty) {
-      mapController.move(LatLng(11.922, 79.630), 15.0);
+      mapController.move(const LatLng(11.922, 79.630), 15.0);
     } else {
-      mapController.move(LatLng(11.922, 79.630), 14.5);
+      mapController.move(const LatLng(11.922, 79.630), 14.5);
     }
   }
 
@@ -51,7 +58,6 @@ class V2XService extends ChangeNotifier {
     final phi2 = lat2 * math.pi / 180;
     final deltaPhi = (lat2 - lat1) * math.pi / 180;
     final deltaLambda = (lon2 - lon1) * math.pi / 180;
-
     final a = math.sin(deltaPhi / 2) * math.sin(deltaPhi / 2) +
         math.cos(phi1) * math.cos(phi2) * math.sin(deltaLambda / 2) * math.sin(deltaLambda / 2);
     final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
@@ -59,7 +65,6 @@ class V2XService extends ChangeNotifier {
   }
 
   void _checkProximity(V2XEvent event) {
-    // Check against Pakkam center for now (simulated)
     final distanceMeters = _calculateDistanceMeters(11.922, 79.630, event.latitude, event.longitude);
     if (distanceMeters < 500.0) {
       _alertStreamController.add(event);
@@ -70,6 +75,7 @@ class V2XService extends ChangeNotifier {
     try {
       _eventsRef = FirebaseDatabase.instance.ref('events');
       _vehiclesRef = FirebaseDatabase.instance.ref('vehicles');
+      _healthRef = FirebaseDatabase.instance.ref('vehicle_health');
       
       _eventsRef!.onChildAdded.listen((event) {
         if (event.snapshot.value != null) {
@@ -94,6 +100,18 @@ class V2XService extends ChangeNotifier {
         }
       });
 
+      // Listen for vehicle health telemetry
+      _healthRef!.onValue.listen((event) {
+        if (event.snapshot.value != null) {
+          final data = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+          _healthMap.clear();
+          data.forEach((key, value) {
+            _healthMap[key] = VehicleHealth.fromJson(Map<dynamic, dynamic>.from(value));
+          });
+          notifyListeners();
+        }
+      });
+
     } catch (e) {
       if (kDebugMode) print("Firebase Error: $e");
       _isConnected = false;
@@ -102,9 +120,7 @@ class V2XService extends ChangeNotifier {
   }
 
   void _startSimulatedStream() {
-    // Parity with CarPlay Sim logic
     Timer.periodic(const Duration(seconds: 4), (timer) {
-      // Periodic mock pothole near Pakkam
       final simEvent = V2XEvent(
         id: 'sim_${DateTime.now().millisecondsSinceEpoch}',
         type: 'surface_anomaly',
