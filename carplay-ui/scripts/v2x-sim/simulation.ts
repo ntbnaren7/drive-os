@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv';
 import geohash from 'ngeohash';
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, set, remove, Database } from 'firebase/database';
+import { getDatabase, ref, set, remove, onValue, update, Database } from 'firebase/database';
 
 dotenv.config({ path: './.env' });
 
@@ -20,7 +20,7 @@ if (firebaseConfig.databaseURL) {
   try {
     const app = initializeApp(firebaseConfig);
     db = getDatabase(app);
-    console.log("🔥 Firebase Client Connected. Syncing V2X to Cloud...");
+    console.log("🔥 Firebase Client Connected. V2X Swarm Director Online.");
   } catch (err: any) {
     console.warn("⚠️ Firebase Init Failed:", err.message);
   }
@@ -35,7 +35,7 @@ interface Location { lat: number; lon: number; geohash?: string; }
 interface MotionContext { speed: number; heading: number; }
 interface Detection { type: string; subtype: string; severity: number; confidence: number; }
 interface Signals { imu_peak: number; audio_peak: number; duration_ms: number; }
-interface Validation { status: string; votes: number; verified: boolean; }
+interface Validation { status: string; votes: number; verified: boolean; sources: string[]; }
 interface Source { mode: string; device: string; }
 
 interface V2XEvent {
@@ -48,12 +48,18 @@ interface V2XEvent {
   signals: Signals;
   validation: Validation;
   source: Source;
+  // ADAS fields
+  escape_vector?: { recommended_action: string; lane_offset: number; confidence: number; };
+  rshi_segment?: string; // Road Surface Health Index segment ID
 }
 
 interface VehicleNode {
   vehicle_id: string;
   last_seen: number;
   location: Location;
+  speed: number;
+  heading: number;
+  role: 'scout' | 'validator' | 'ego';
   status: { online: boolean; connection: string; };
   stats: { events_generated: number; events_verified: number; };
 }
@@ -61,98 +67,133 @@ interface VehicleNode {
 interface Waypoint { lat: number; lon: number; }
 
 // ========================================
-// VIRTUAL TRAFFIC ENGINE V2
+// DETERMINISTIC ROUTE DEFINITIONS
+// Actual road coordinates on SH 332 / ECR
 // ========================================
-const EVENT_TTL_SECONDS = 10; // Pothole markers decay after 10s
-const POTHOLE_PROBABILITY = 0.02; // 2% chance per tick per vehicle
+
+// All three vehicles travel the SAME road, staggered in time.
+// This is the key to the "Scout -> Validator -> Ego" narrative.
+const SHARED_ROUTE: Waypoint[] = [
+  // SH 332, Puducherry-Villupuram Road (Westbound stretch near Pakkam)
+  { lat: 11.9260, lon: 79.6340 },
+  { lat: 11.9255, lon: 79.6330 },
+  { lat: 11.9250, lon: 79.6320 },
+  { lat: 11.9245, lon: 79.6310 },
+  { lat: 11.9240, lon: 79.6300 }, // <-- POTHOLE ZONE (hazard planted here)
+  { lat: 11.9235, lon: 79.6290 },
+  { lat: 11.9230, lon: 79.6280 },
+  { lat: 11.9225, lon: 79.6270 },
+  { lat: 11.9220, lon: 79.6260 },
+  { lat: 11.9215, lon: 79.6250 },
+  { lat: 11.9210, lon: 79.6240 },
+  { lat: 11.9205, lon: 79.6230 },
+  // -- Return leg (loop back)
+  { lat: 11.9210, lon: 79.6240 },
+  { lat: 11.9215, lon: 79.6250 },
+  { lat: 11.9220, lon: 79.6260 },
+  { lat: 11.9225, lon: 79.6270 },
+  { lat: 11.9230, lon: 79.6280 },
+  { lat: 11.9235, lon: 79.6290 },
+  { lat: 11.9240, lon: 79.6300 }, // <-- POTHOLE ZONE (again on return)
+  { lat: 11.9245, lon: 79.6310 },
+  { lat: 11.9250, lon: 79.6320 },
+  { lat: 11.9255, lon: 79.6330 },
+];
+
+// Fixed pothole locations (deterministic, not random)
+const POTHOLE_LOCATIONS: { coord: Waypoint; severity: number; id: string }[] = [
+  { coord: { lat: 11.9240, lon: 79.6300 }, severity: 0.85, id: 'pothole_alpha' },
+  { coord: { lat: 11.9225, lon: 79.6270 }, severity: 0.62, id: 'pothole_beta'  },
+  { coord: { lat: 11.9215, lon: 79.6250 }, severity: 0.45, id: 'pothole_gamma' },
+];
+
+// Detection radius (in degrees, ~5 meters)
+const DETECTION_RADIUS = 0.0005;
 const TICK_INTERVAL_MS = 2000;
+const SWARM_CONFIDENCE_THRESHOLD = 0.75; // Lane-switch triggers above this
 
-class VirtualTrafficEngine {
-  // -------------------------------------------------------
-  // HIGH-DENSITY SPLINE PATHS (SH 332 / Pakkam Area)
-  // Coordinates mapped tightly to actual road geometry
-  // -------------------------------------------------------
-  private routes: Waypoint[][] = [
-    // Route A — Villupuram - Puducherry Rd (SH 332) Westbound
-    [
-      { lat: 11.9200, lon: 79.6308 },
-      { lat: 11.9202, lon: 79.6300 },
-      { lat: 11.9205, lon: 79.6292 },
-      { lat: 11.9208, lon: 79.6280 },
-      { lat: 11.9211, lon: 79.6272 },
-      { lat: 11.9214, lon: 79.6264 },
-      { lat: 11.9216, lon: 79.6256 },
-      { lat: 11.9218, lon: 79.6248 },
-      { lat: 11.9216, lon: 79.6256 },
-      { lat: 11.9214, lon: 79.6264 },
-      { lat: 11.9211, lon: 79.6272 },
-      { lat: 11.9208, lon: 79.6280 },
-      { lat: 11.9205, lon: 79.6292 },
-      { lat: 11.9202, lon: 79.6300 },
-    ],
-    // Route B — Cuddalore - Pallinetiyanur Rd (North-South Loop)
-    [
-      { lat: 11.9260, lon: 79.6288 },
-      { lat: 11.9255, lon: 79.6290 },
-      { lat: 11.9248, lon: 79.6293 },
-      { lat: 11.9238, lon: 79.6297 },
-      { lat: 11.9228, lon: 79.6302 },
-      { lat: 11.9218, lon: 79.6306 },
-      { lat: 11.9208, lon: 79.6310 },
-      { lat: 11.9198, lon: 79.6315 },
-      { lat: 11.9188, lon: 79.6319 },
-      { lat: 11.9198, lon: 79.6315 },
-      { lat: 11.9208, lon: 79.6310 },
-      { lat: 11.9218, lon: 79.6306 },
-      { lat: 11.9228, lon: 79.6302 },
-      { lat: 11.9238, lon: 79.6297 },
-      { lat: 11.9248, lon: 79.6293 },
-      { lat: 11.9255, lon: 79.6290 },
-    ],
-    // Route C — Inner RC-19 / Local Grid Array
-    [
-      { lat: 11.9234, lon: 79.6303 },
-      { lat: 11.9236, lon: 79.6312 },
-      { lat: 11.9238, lon: 79.6321 },
-      { lat: 11.9239, lon: 79.6331 },
-      { lat: 11.9240, lon: 79.6341 },
-      { lat: 11.9241, lon: 79.6351 },
-      { lat: 11.9242, lon: 79.6361 },
-      { lat: 11.9241, lon: 79.6351 },
-      { lat: 11.9240, lon: 79.6341 },
-      { lat: 11.9239, lon: 79.6331 },
-      { lat: 11.9238, lon: 79.6321 },
-      { lat: 11.9236, lon: 79.6312 },
-    ]
-  ];
+// ========================================
+// SWARM INTELLIGENCE DIRECTOR
+// ========================================
+class SwarmDirector {
+  private vehicles: Map<string, {
+    lat: number;
+    lon: number;
+    waypointIndex: number;
+    heading: number;
+    speed: number;
+    role: 'scout' | 'validator' | 'ego';
+    eventsGenerated: number;
+    eventsVerified: number;
+    detectedPotholes: Set<string>; // Track which potholes this vehicle has already flagged
+  }> = new Map();
 
-  private vehicles: Map<string, any> = new Map();
-  private activeEvents: Map<string, { timestamp: number }> = new Map();
-  private totalPotholes = 0;
+  // Master event registry (shared across all vehicles)
+  private potholeRegistry: Map<string, {
+    event_id: string;
+    location: Location;
+    severity: number;
+    confidence: number;
+    votes: number;
+    sources: string[];
+    verified: boolean;
+    timestamp: number;
+    escape_active: boolean;
+  }> = new Map();
+
+  private tickCount = 0;
 
   constructor() {
-    console.log("🟢 V2X Virtual Traffic Engine V2 Starting...");
-    console.log("🛣️  Routes locked to SH 332 / ECR / Puducherry Grid.");
-    console.log(`⏱️  Event TTL: ${EVENT_TTL_SECONDS}s | Pothole Rate: ${POTHOLE_PROBABILITY * 100}%`);
+    console.log("\n╔══════════════════════════════════════════╗");
+    console.log("║   🧠 DRIVEOS SWARM INTELLIGENCE v3.0    ║");
+    console.log("║   Deterministic V2X Director Online      ║");
+    console.log("╠══════════════════════════════════════════╣");
+    console.log("║  Scout:     veh_101 (First Detector)     ║");
+    console.log("║  Validator: veh_102 (Confidence Booster)  ║");
+    console.log("║  Ego Car:   veh_103 (ADAS Receiver)      ║");
+    console.log("╚══════════════════════════════════════════╝\n");
+
     this.initVehicles();
+    this.clearPreviousData();
     this.startSimulationLoop();
-    this.startDecayWorker();
+    this.startRSHIWorker();
   }
 
   private initVehicles() {
-    const fleet = ['veh_101', 'veh_102', 'veh_103'];
-    fleet.forEach((id, index) => {
-      const startPt = this.routes[index][0];
-      this.vehicles.set(id, {
+    // Scout starts first, Validator 3 waypoints behind, Ego 6 waypoints behind
+    const fleet: { id: string; startIndex: number; speed: number; role: 'scout' | 'validator' | 'ego' }[] = [
+      { id: 'veh_101', startIndex: 0,  speed: 45, role: 'scout' },
+      { id: 'veh_102', startIndex: 0,  speed: 42, role: 'validator' }, // Starts same place, slightly slower
+      { id: 'veh_103', startIndex: 0,  speed: 55, role: 'ego' },       // Ego is faster (highway)
+    ];
+
+    fleet.forEach((v, i) => {
+      // Stagger start positions along the route  
+      const staggeredIndex = Math.min(v.startIndex + (i * 3), SHARED_ROUTE.length - 1);
+      const startPt = SHARED_ROUTE[staggeredIndex];
+      this.vehicles.set(v.id, {
         lat: startPt.lat,
         lon: startPt.lon,
-        routeIndex: index,
-        waypointIndex: 1,
+        waypointIndex: staggeredIndex + 1,
         heading: 0,
-        speed: 35 + Math.random() * 25, // 35-60 km/h
-        eventsGenerated: 0
+        speed: v.speed,
+        role: v.role,
+        eventsGenerated: 0,
+        eventsVerified: 0,
+        detectedPotholes: new Set(),
       });
     });
+  }
+
+  private async clearPreviousData() {
+    if (!db) return;
+    try {
+      await remove(ref(db, 'events'));
+      await remove(ref(db, 'vehicles'));
+      await remove(ref(db, 'rshi'));
+      await remove(ref(db, 'adas'));
+      console.log("🧹 Cleared previous simulation data.\n");
+    } catch (e) {}
   }
 
   private generateId() {
@@ -160,122 +201,285 @@ class VirtualTrafficEngine {
   }
 
   // -------------------------------------------------------
+  // CORE: Check if a vehicle is near a pothole
+  // -------------------------------------------------------
+  private checkPotholeProximity(vehicleId: string, lat: number, lon: number): void {
+    const vehicle = this.vehicles.get(vehicleId)!;
+
+    for (const pothole of POTHOLE_LOCATIONS) {
+      const dist = Math.sqrt(
+        Math.pow(lat - pothole.coord.lat, 2) + Math.pow(lon - pothole.coord.lon, 2)
+      );
+
+      if (dist < DETECTION_RADIUS && !vehicle.detectedPotholes.has(pothole.id)) {
+        vehicle.detectedPotholes.add(pothole.id);
+        
+        const existing = this.potholeRegistry.get(pothole.id);
+        
+        if (!existing) {
+          // FIRST DETECTION (Scout finds it)
+          const initialConfidence = 0.30 + Math.random() * 0.15; // 30-45%
+          const imuPeak = 1.5 + Math.random() * 2.5;
+          
+          const entry = {
+            event_id: this.generateId(),
+            location: {
+              lat: pothole.coord.lat,
+              lon: pothole.coord.lon,
+              geohash: geohash.encode(pothole.coord.lat, pothole.coord.lon, 7)
+            },
+            severity: pothole.severity,
+            confidence: initialConfidence,
+            votes: 1,
+            sources: [vehicleId],
+            verified: false,
+            timestamp: Math.floor(Date.now() / 1000),
+            escape_active: false,
+          };
+          
+          this.potholeRegistry.set(pothole.id, entry);
+          vehicle.eventsGenerated++;
+          
+          console.log(`\n🔍 [SCOUT] ${vehicleId} FIRST DETECTION of ${pothole.id}!`);
+          console.log(`   📍 (${pothole.coord.lat}, ${pothole.coord.lon}) | Conf: ${(initialConfidence * 100).toFixed(0)}% | IMU: ${imuPeak.toFixed(1)}G`);
+          console.log(`   ⏳ Awaiting validation from swarm...\n`);
+
+          this.publishEvent(entry, vehicleId, imuPeak);
+          
+        } else if (!existing.sources.includes(vehicleId)) {
+          // VALIDATION (Another vehicle confirms it)
+          existing.votes++;
+          existing.sources.push(vehicleId);
+          vehicle.eventsVerified++;
+          
+          // Confidence increases logarithmically with each validation
+          const boost = 0.25 / Math.sqrt(existing.votes); 
+          existing.confidence = Math.min(0.98, existing.confidence + boost);
+          existing.timestamp = Math.floor(Date.now() / 1000);
+          
+          const wasVerified = existing.verified;
+          existing.verified = existing.confidence >= SWARM_CONFIDENCE_THRESHOLD;
+          
+          console.log(`\n✅ [VALIDATOR] ${vehicleId} CONFIRMED ${pothole.id}!`);
+          console.log(`   📊 Confidence: ${(existing.confidence * 100).toFixed(0)}% | Votes: ${existing.votes} | Sources: [${existing.sources.join(', ')}]`);
+          
+          if (existing.verified && !wasVerified) {
+            existing.escape_active = true;
+            console.log(`   🚨 *** SWARM THRESHOLD REACHED! ADAS ESCAPE VECTOR NOW ACTIVE ***`);
+            console.log(`   🛡️  All following vehicles will receive lane-switch guidance.\n`);
+            this.publishAdasAlert(existing);
+          } else {
+            console.log(`   ⏳ Need more validations for ADAS trigger (${(SWARM_CONFIDENCE_THRESHOLD * 100).toFixed(0)}% required)\n`);
+          }
+
+          this.publishEvent(existing, vehicleId, 2.0 + Math.random() * 1.5);
+        }
+      }
+    }
+  }
+
+  // -------------------------------------------------------
+  // ADAS Escape Vector Publication
+  // -------------------------------------------------------
+  private publishAdasAlert(pothole: typeof this.potholeRegistry extends Map<string, infer V> ? V : never) {
+    if (!db) return;
+    
+    const adasPayload = {
+      hazard_id: pothole.event_id,
+      location: pothole.location,
+      confidence: pothole.confidence,
+      verified: true,
+      recommended_action: 'LANE_SWITCH_LEFT',
+      lane_offset_m: 1.5,
+      stopping_distance_m: 45, // At 60km/h
+      alert_level: 'CRITICAL',
+      timestamp: Math.floor(Date.now() / 1000),
+    };
+
+    set(ref(db, `adas/active_alert`), adasPayload).catch(() => {});
+  }
+
+  // -------------------------------------------------------
+  // RSHI (Road Surface Health Index) Worker
+  // Aggregates pothole density into road segments
+  // -------------------------------------------------------
+  private startRSHIWorker() {
+    setInterval(() => {
+      if (!db) return;
+      
+      // Divide the route into segments and score them
+      const segmentSize = 4; // 4 waypoints per segment
+      const segments: any[] = [];
+      
+      for (let i = 0; i < SHARED_ROUTE.length; i += segmentSize) {
+        const segWaypoints = SHARED_ROUTE.slice(i, i + segmentSize);
+        const segCenter = segWaypoints[Math.floor(segWaypoints.length / 2)];
+        
+        // Count potholes in this segment
+        let potholeCount = 0;
+        let maxSeverity = 0;
+        let totalConfidence = 0;
+        
+        this.potholeRegistry.forEach((pothole) => {
+          for (const wp of segWaypoints) {
+            const dist = Math.sqrt(
+              Math.pow(pothole.location.lat - wp.lat, 2) + Math.pow(pothole.location.lon - wp.lon, 2)
+            );
+            if (dist < 0.001) {
+              potholeCount++;
+              maxSeverity = Math.max(maxSeverity, pothole.severity);
+              totalConfidence += pothole.confidence;
+              break;
+            }
+          }
+        });
+        
+        // Health Score: 100 = perfect road, 0 = critically damaged
+        const healthScore = Math.max(0, 100 - (potholeCount * 30) - (maxSeverity * 20));
+        const status = healthScore > 70 ? 'GOOD' : healthScore > 40 ? 'FAIR' : 'CRITICAL';
+
+        segments.push({
+          segment_id: `seg_${Math.floor(i / segmentSize)}`,
+          center: { lat: segCenter.lat, lon: segCenter.lon },
+          bounds: {
+            start: segWaypoints[0],
+            end: segWaypoints[segWaypoints.length - 1],
+          },
+          health_score: Math.round(healthScore),
+          status,
+          pothole_count: potholeCount,
+          max_severity: maxSeverity,
+          avg_confidence: potholeCount > 0 ? totalConfidence / potholeCount : 0,
+          last_updated: Math.floor(Date.now() / 1000),
+        });
+      }
+
+      // Publish RSHI to Firebase
+      segments.forEach((seg) => {
+        set(ref(db!, `rshi/${seg.segment_id}`), seg).catch(() => {});
+      });
+
+    }, 5000); // Update every 5 seconds
+  }
+
+  // -------------------------------------------------------
   // MAIN SIMULATION TICK
   // -------------------------------------------------------
   private startSimulationLoop() {
     setInterval(() => {
+      this.tickCount++;
       const now = Math.floor(Date.now() / 1000);
 
       this.vehicles.forEach((vehicle, id) => {
-        const route = this.routes[vehicle.routeIndex];
+        const route = SHARED_ROUTE;
         const targetWp = route[vehicle.waypointIndex];
 
+        // Calculate vector to next waypoint
         const dx = targetWp.lon - vehicle.lon;
         const dy = targetWp.lat - vehicle.lat;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
+        // Calculate true heading
         const trueHeading = Math.atan2(dx, dy) * (180 / Math.PI);
         vehicle.heading = trueHeading >= 0 ? trueHeading : 360 + trueHeading;
 
+        // Movement interpolation
         const moveDist = (vehicle.speed / 3600) * 0.008;
 
         if (dist < moveDist) {
           vehicle.lat = targetWp.lat;
           vehicle.lon = targetWp.lon;
           vehicle.waypointIndex = (vehicle.waypointIndex + 1) % route.length;
-          vehicle.speed = 35 + Math.random() * 25; // Randomize speed at each turn
         } else {
           const ratio = moveDist / dist;
           vehicle.lon += dx * ratio;
           vehicle.lat += dy * ratio;
         }
 
-        const gh = geohash.encode(vehicle.lat, vehicle.lon, 7);
+        // Check for pothole proximity (deterministic detection)
+        this.checkPotholeProximity(id, vehicle.lat, vehicle.lon);
 
+        // Publish vehicle telemetry
+        const gh = geohash.encode(vehicle.lat, vehicle.lon, 7);
         const nodePayload: VehicleNode = {
           vehicle_id: id,
           last_seen: now,
-          location: { lat: Number(vehicle.lat.toFixed(6)), lon: Number(vehicle.lon.toFixed(6)) },
+          location: { lat: Number(vehicle.lat.toFixed(6)), lon: Number(vehicle.lon.toFixed(6)), geohash: gh },
+          speed: vehicle.speed,
+          heading: Math.round(vehicle.heading % 360),
+          role: vehicle.role,
           status: { online: true, connection: "V2V | Cloud" },
           stats: {
             events_generated: vehicle.eventsGenerated,
-            events_verified: Math.floor(vehicle.eventsGenerated * 0.6)
+            events_verified: vehicle.eventsVerified
           }
         };
 
-        // Pothole detection (2% chance)
-        if (Math.random() < POTHOLE_PROBABILITY) {
-          vehicle.eventsGenerated++;
-          this.totalPotholes++;
-          const severity = Number((0.5 + Math.random() * 0.5).toFixed(2));
-
-          const eventPayload: V2XEvent = {
-            event_id: this.generateId(),
-            vehicle_id: id,
-            timestamp: now,
-            location: {
-              lat: Number(vehicle.lat.toFixed(6)),
-              lon: Number(vehicle.lon.toFixed(6)),
-              geohash: gh
-            },
-            motion_context: {
-              speed: Number(vehicle.speed.toFixed(1)),
-              heading: Math.round(vehicle.heading % 360)
-            },
-            detection: {
-              type: "surface_anomaly",
-              subtype: "pothole",
-              severity,
-              confidence: Number((0.7 + Math.random() * 0.25).toFixed(2))
-            },
-            signals: {
-              imu_peak: Number((2.0 + Math.random() * 2).toFixed(1)),
-              audio_peak: Number((0.4 + Math.random() * 0.4).toFixed(2)),
-              duration_ms: Math.floor(80 + Math.random() * 100)
-            },
-            validation: { status: "pending", votes: 1, verified: false },
-            source: { mode: "edge_detected", device: "UNO_Q_v1" }
-          };
-
-          this.activeEvents.set(eventPayload.event_id, { timestamp: now });
-          this.publishEvent(eventPayload);
-        }
-
         this.publishVehicle(nodePayload);
       });
+
+      // Status line
+      const regSize = this.potholeRegistry.size;
+      const verified = [...this.potholeRegistry.values()].filter(p => p.verified).length;
+      process.stdout.write(`\r🛰️  Tick ${this.tickCount} | Potholes: ${regSize} (${verified} verified) | ADAS: ${verified > 0 ? '🟢 ACTIVE' : '⏳ STANDBY'}  `);
+
     }, TICK_INTERVAL_MS);
   }
 
-  // -------------------------------------------------------
-  // DATA DECAY WORKER — removes stale events every 2s
-  // -------------------------------------------------------
-  private startDecayWorker() {
-    setInterval(() => {
-      const now = Math.floor(Date.now() / 1000);
-      this.activeEvents.forEach((meta, eventId) => {
-        if (now - meta.timestamp > EVENT_TTL_SECONDS) {
-          if (db) {
-            remove(ref(db, `events/${eventId}`)).catch(() => {});
-          }
-          this.activeEvents.delete(eventId);
-        }
-      });
-    }, 2000);
-  }
-
   private publishVehicle(node: VehicleNode) {
-    process.stdout.write(`\r📡 [V2V] ${node.vehicle_id} @ (${node.location.lat}, ${node.location.lon}) | Potholes: ${this.totalPotholes} | Active: ${this.activeEvents.size}  `);
     if (db) {
       set(ref(db, `vehicles/${node.vehicle_id}`), node).catch(() => {});
     }
   }
 
-  private publishEvent(event: V2XEvent) {
-    console.log(`\n🚨 [ANOMALY] ${event.vehicle_id} Pothole! Sev: ${event.detection.severity} | (${event.location.lat}, ${event.location.lon}) | TTL: ${EVENT_TTL_SECONDS}s`);
-    if (db) {
-      set(ref(db, `events/${event.event_id}`), event).catch((e) => console.warn("\nSync fail:", e.message));
+  private publishEvent(
+    entry: { event_id: string; location: Location; severity: number; confidence: number; votes: number; sources: string[]; verified: boolean; timestamp: number; escape_active: boolean },
+    vehicleId: string,
+    imuPeak: number
+  ) {
+    if (!db) return;
+
+    const eventPayload: V2XEvent = {
+      event_id: entry.event_id,
+      vehicle_id: vehicleId,
+      timestamp: entry.timestamp,
+      location: entry.location,
+      motion_context: {
+        speed: this.vehicles.get(vehicleId)?.speed ?? 0,
+        heading: Math.round(this.vehicles.get(vehicleId)?.heading ?? 0)
+      },
+      detection: {
+        type: "surface_anomaly",
+        subtype: "pothole",
+        severity: entry.severity,
+        confidence: entry.confidence
+      },
+      signals: {
+        imu_peak: Number(imuPeak.toFixed(1)),
+        audio_peak: Number((0.4 + Math.random() * 0.4).toFixed(2)),
+        duration_ms: Math.floor(80 + Math.random() * 100)
+      },
+      validation: {
+        status: entry.verified ? "swarm_verified" : "pending",
+        votes: entry.votes,
+        verified: entry.verified,
+        sources: entry.sources
+      },
+      source: { mode: "edge_detected", device: "UNO_Q_v1" },
+    };
+
+    if (entry.escape_active) {
+      eventPayload.escape_vector = {
+        recommended_action: 'LANE_SWITCH_LEFT',
+        lane_offset: 1.5,
+        confidence: entry.confidence,
+      };
     }
+
+    set(ref(db, `events/${entry.event_id}`), eventPayload).catch((e) =>
+      console.warn("\nSync fail:", e.message)
+    );
   }
 }
 
-new VirtualTrafficEngine();
+new SwarmDirector();

@@ -1,59 +1,86 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { db } from '../../services/firebase';
+import { ref, onValue } from 'firebase/database';
+import { CheckCircle2 } from 'lucide-react';
 import './HazardFeed.css';
 
-interface HazardEvent {
+interface LiveHazard {
   id: string;
   type: string;
-  severity: 'high' | 'med' | 'low';
-  distance: string;
+  severity: number;
   confidence: number;
+  votes: number;
+  verified: boolean;
+  lat: number;
+  lon: number;
+  timestamp: number;
 }
 
-const EVENTS: HazardEvent[] = [
-  { id: '1', type: 'Severe Pothole', severity: 'high', distance: '120m', confidence: 94 },
-  { id: '2', type: 'Surface Crack', severity: 'med', distance: '340m', confidence: 82 },
-  { id: '3', type: 'Uneven Road', severity: 'low', distance: '850m', confidence: 76 },
-  { id: '4', type: 'Debris Detected', severity: 'high', distance: '1.2km', confidence: 88 },
-];
-
 /* Custom hazard severity icons - clean geometric shapes */
-const SeverityIcon = ({ severity }: { severity: string }) => {
+const SeverityIcon = ({ severity }: { severity: number }) => {
   const size = 16;
-  switch (severity) {
-    case 'high':
-      return (
-        <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-          <path d="M8 2L14 13H2L8 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-          <line x1="8" y1="6.5" x2="8" y2="9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <circle cx="8" cy="11" r="0.75" fill="currentColor" />
-        </svg>
-      );
-    case 'med':
-      return (
-        <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-          <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
-          <line x1="8" y1="5" x2="8" y2="8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <circle cx="8" cy="10.5" r="0.75" fill="currentColor" />
-        </svg>
-      );
-    case 'low':
-      return (
-        <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-          <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" />
-          <circle cx="8" cy="8" r="2" fill="currentColor" />
-        </svg>
-      );
-    default:
-      return (
-        <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-          <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" />
-        </svg>
-      );
+  if (severity > 0.7) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+        <path d="M8 2L14 13H2L8 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+        <line x1="8" y1="6.5" x2="8" y2="9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <circle cx="8" cy="11" r="0.75" fill="currentColor" />
+      </svg>
+    );
+  } else if (severity > 0.4) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+        <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
+        <line x1="8" y1="5" x2="8" y2="8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <circle cx="8" cy="10.5" r="0.75" fill="currentColor" />
+      </svg>
+    );
   }
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="8" cy="8" r="2" fill="currentColor" />
+    </svg>
+  );
 };
 
+const getSeverityClass = (sev: number) => sev > 0.7 ? 'high' : sev > 0.4 ? 'med' : 'low';
+
 const HazardFeed: React.FC = () => {
+  const [hazards, setHazards] = useState<LiveHazard[]>([]);
+
+  useEffect(() => {
+    const eventsRef = ref(db, 'events');
+    const unsub = onValue(eventsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) { setHazards([]); return; }
+
+      const parsed: LiveHazard[] = [];
+      Object.entries(data).forEach(([key, ev]: [string, any]) => {
+        if (ev.detection?.subtype === 'pothole' && ev.location) {
+          parsed.push({
+            id: key,
+            type: ev.detection.subtype,
+            severity: ev.detection.severity ?? 0,
+            confidence: ev.detection.confidence ?? 0,
+            votes: ev.validation?.votes ?? 1,
+            verified: ev.validation?.verified ?? false,
+            lat: ev.location.lat,
+            lon: ev.location.lon,
+            timestamp: ev.timestamp,
+          });
+        }
+      });
+
+      // Sort by timestamp descending
+      parsed.sort((a, b) => b.timestamp - a.timestamp);
+      setHazards(parsed.slice(0, 5)); // Max 5 in feed
+    });
+
+    return () => unsub();
+  }, []);
+
   return (
     <motion.div
       className="hazard-feed"
@@ -64,35 +91,48 @@ const HazardFeed: React.FC = () => {
       <div className="hazard__header">
         <div className="hazard__title">
           <div className="hazard__pulse-dot" />
-          H-FEED (LOCAL MESH)
+          H-FEED (SWARM MESH)
         </div>
-        <span style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', letterSpacing: '0.3px' }}>Sync: Active</span>
+        <span style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', letterSpacing: '0.3px' }}>
+          {hazards.length > 0 ? `${hazards.length} Active` : 'Scanning'}
+        </span>
       </div>
 
       <div className="hazard__list">
-        {EVENTS.map((event, i) => (
-          <motion.div
-            className={`hazard-item hazard-item--${event.severity}`}
-            key={event.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 + i * 0.1, duration: 0.4 }}
-          >
-            <div className="hazard-item__icon">
-              <SeverityIcon severity={event.severity} />
-            </div>
-            
-            <div className="hazard-item__details">
-              <div className="hazard-item__type">{event.type}</div>
-              <div className="hazard-item__meta">
-                <span className="hazard-item__dist">{event.distance}</span>
-                <span className="hazard-item__conf">
-                  {event.confidence}% Conf.
-                </span>
+        {hazards.length === 0 ? (
+          <div style={{ padding: '16px 0', textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem' }}>
+            No active hazards detected...
+          </div>
+        ) : (
+          hazards.map((event, i) => (
+            <motion.div
+              className={`hazard-item hazard-item--${getSeverityClass(event.severity)}`}
+              key={event.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + i * 0.08, duration: 0.4 }}
+            >
+              <div className="hazard-item__icon">
+                <SeverityIcon severity={event.severity} />
               </div>
-            </div>
-          </motion.div>
-        ))}
+              
+              <div className="hazard-item__details">
+                <div className="hazard-item__type">
+                  {event.severity > 0.7 ? 'Severe Pothole' : event.severity > 0.4 ? 'Surface Anomaly' : 'Minor Defect'}
+                  {event.verified && <CheckCircle2 size={11} color="#30d158" style={{marginLeft: 4, verticalAlign: 'text-top'}} />}
+                </div>
+                <div className="hazard-item__meta">
+                  <span className="hazard-item__dist">
+                    {event.votes > 1 ? `${event.votes} votes` : '1 vote'}
+                  </span>
+                  <span className="hazard-item__conf">
+                    {(event.confidence * 100).toFixed(0)}% Conf.
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          ))
+        )}
       </div>
     </motion.div>
   );

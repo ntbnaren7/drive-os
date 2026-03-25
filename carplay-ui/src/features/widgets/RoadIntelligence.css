@@ -1,4 +1,73 @@
-.road-intel-widget { display: none; /* Safely hide the old widget class */ }
+.road-intel-widget {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 250px;
+  background: rgba(12, 14, 20, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 16px;
+  z-index: 100;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.road-intel-widget.hazard-active {
+  background: rgba(40, 0, 0, 0.85);
+  border-color: rgba(255, 69, 58, 0.5);
+  box-shadow: 0 0 40px rgba(255, 69, 58, 0.3), inset 0 0 0 1px rgba(255, 69, 58, 0.4);
+  animation: hud-hazard-pulse 1.5s infinite;
+}
+
+.road-intel-widget.adas-active {
+  background: rgba(0, 15, 40, 0.9);
+  border-color: rgba(58, 155, 255, 0.5);
+  box-shadow: 0 0 50px rgba(58, 155, 255, 0.3), inset 0 0 0 1px rgba(58, 155, 255, 0.4);
+  animation: adas-pulse 2s infinite;
+}
+
+@keyframes adas-pulse {
+  0% { box-shadow: 0 0 50px rgba(58, 155, 255, 0.3), inset 0 0 0 1px rgba(58, 155, 255, 0.4); }
+  50% { box-shadow: 0 0 70px rgba(58, 155, 255, 0.5), inset 0 0 0 1px rgba(58, 155, 255, 0.7); }
+  100% { box-shadow: 0 0 50px rgba(58, 155, 255, 0.3), inset 0 0 0 1px rgba(58, 155, 255, 0.4); }
+}
+
+/* ADAS Alert View */
+.v2x-adas-alert { display: flex; flex-direction: column; }
+.adas-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.adas-title { color: #3a9bff; font-family: 'Inter', sans-serif; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.05em; }
+.adas-action { display: flex; align-items: center; gap: 8px; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight: 700; margin-bottom: 12px; letter-spacing: 0.03em; }
+.adas-stats { display: flex; justify-content: space-between; padding: 10px; background: rgba(0,0,0,0.4); border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 10px; }
+.a-stat { display: flex; flex-direction: column; align-items: center; }
+.a-stat .lbl { font-family: 'Inter', sans-serif; font-size: 0.5rem; color: rgba(255,255,255,0.5); letter-spacing: 0.1em; }
+.a-stat .val { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; font-weight: 700; color: #fff; margin-top: 2px; }
+.adas-footer { display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.6); font-family: 'Inter', sans-serif; font-size: 0.6rem; font-weight: 600; letter-spacing: 0.05em; }
+
+/* Hazard Alert View */
+.v2x-hazard-alert { display: flex; flex-direction: column; }
+.hazard-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.hazard-type { font-family: 'JetBrains Mono', monospace; font-size: 1.2rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.hazard-stats { display: flex; justify-content: space-between; padding: 10px; background: rgba(0,0,0,0.4); border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 10px; }
+.h-stat { display: flex; flex-direction: column; align-items: center; }
+.h-stat .lbl { font-family: 'Inter', sans-serif; font-size: 0.5rem; color: rgba(255,255,255,0.5); letter-spacing: 0.1em; }
+.h-stat .val { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; font-weight: 700; color: #fff; margin-top: 2px; }
+.h-div { width: 1px; background: rgba(255,255,255,0.1); }
+.hazard-footer { display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.6); font-family: 'Inter', sans-serif; font-size: 0.6rem; font-weight: 600; letter-spacing: 0.05em; }
+.pulse-dot { width: 6px; height: 6px; background: #ff453a; border-radius: 50%; box-shadow: 0 0 8px #ff453a; animation: live-blink 1s infinite; }
+
+/* Normal / Scanning View */
+.road-intel__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.road-intel__main { display: flex; align-items: center; gap: 10px; }
+.road-intel__icon { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: rgba(58,155,255,0.15); border-radius: 10px; }
+.road-intel__score { font-family: 'JetBrains Mono', monospace; font-size: 1.2rem; font-weight: 700; color: #30d158; }
+.road-intel__label { font-family: 'Inter', sans-serif; font-size: 0.6rem; color: rgba(255,255,255,0.5); letter-spacing: 0.08em; font-weight: 600; }
+.road-intel__metrics { display: flex; gap: 12px; }
+.intel-metric { flex: 1; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
+.intel-metric__label { display: flex; align-items: center; gap: 4px; font-family: 'Inter', sans-serif; font-size: 0.55rem; color: rgba(255,255,255,0.5); letter-spacing: 0.05em; margin-bottom: 4px; }
+.intel-metric__value { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; font-weight: 700; color: #fff; }
 
 .road-intel-pro {
   position: absolute;
