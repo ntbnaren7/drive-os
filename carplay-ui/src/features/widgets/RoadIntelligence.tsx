@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { db, ref, onValue } from '../../services/firebase';
+import { db } from '../../services/firebase';
+import { ref, onValue } from 'firebase/database';
 import { AlertOctagon, Activity, Thermometer, Droplets, Wind, Filter } from 'lucide-react';
 import './RoadIntelligence.css';
 

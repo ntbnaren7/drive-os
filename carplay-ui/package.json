@@ -16,6 +16,7 @@
     "lucide-react": "^1.0.1",
     "mapbox-gl": "^3.20.0",
     "ngeohash": "^0.6.3",
+    "onnxruntime-web": "^1.24.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "zustand": "^5.0.12"

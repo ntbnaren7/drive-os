@@ -8,7 +8,7 @@ import './SystemDock.css';
  * filled active states, and automotive-grade visual weight.
  * ---------------------------------------------------------------- */
 
-const IconSeat = ({ active = false }: { active?: boolean }) => (
+const IconSeat = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M7 18v-2c0-1 .5-3 3-3h4c2.5 0 3 2 3 3v2" />
     <path d="M7 18H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h2" />
@@ -84,7 +84,21 @@ const IconSeatMirror = () => (
   </svg>
 );
 
-const SystemDock: React.FC = () => {
+const IconRadar = ({ active = false }: { active?: boolean }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke={active ? "none" : "currentColor"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2v20" stroke={active ? "#0d0d0d" : "currentColor"} />
+    <path d="M2 12h20" stroke={active ? "#0d0d0d" : "currentColor"} />
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 12L19 5" stroke={active ? "#0d0d0d" : "currentColor"} strokeWidth="2" />
+  </svg>
+);
+
+interface SystemDockProps {
+  activeApp?: 'DASHBOARD' | 'BENTHIC';
+  onAppChange?: (app: 'DASHBOARD' | 'BENTHIC') => void;
+}
+
+const SystemDock: React.FC<SystemDockProps> = ({ activeApp = 'DASHBOARD', onAppChange }) => {
   return (
     <motion.div
       className="system-dock"
@@ -129,8 +143,20 @@ const SystemDock: React.FC = () => {
           </button>
         </div>
 
-        <button className="dock__icon" aria-label="Apps">
+        <button 
+          className={`dock__icon ${activeApp === 'DASHBOARD' ? 'dock__icon--active' : ''}`} 
+          aria-label="Apps"
+          onClick={() => onAppChange && onAppChange('DASHBOARD')}
+        >
           <IconGrid />
+        </button>
+
+        <button 
+          className={`dock__icon ${activeApp === 'BENTHIC' ? 'dock__icon--active' : ''}`} 
+          aria-label="Benthic Vision"
+          onClick={() => onAppChange && onAppChange('BENTHIC')}
+        >
+          <IconRadar active={activeApp === 'BENTHIC'} />
         </button>
 
         <button className="dock__icon" aria-label="Music">

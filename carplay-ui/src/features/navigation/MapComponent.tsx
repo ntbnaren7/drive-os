@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Navigation2, MapPin } from 'lucide-react';
-import { db, ref as fbRef, onValue } from '../../services/firebase';
+import { db } from '../../services/firebase';
+import { ref as fbRef, onValue } from 'firebase/database';
 import './MapComponent.css';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN; 

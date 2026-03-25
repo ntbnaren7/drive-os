@@ -1,0 +1,33 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Runtime env
+.env
+.env.local
+.env.*.local
+*.pem
+service-account.json
+
+# Dependencies
+node_modules/
+dist/
+dist-ssr
+*.local
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.sw?
+
+# Machine Learning
+public/models/*.onnx
+public/models/*.bin
+public/models/*.pth
+
+# Testing
+/coverage
+/e2e/videos
+/e2e/screenshots

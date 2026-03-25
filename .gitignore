@@ -1,0 +1,49 @@
+# [DriveOS] Workspace-Wide Protection
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# System
+Thumbs.db
+.DS_Store
+
+# Temporary
+tmp/
+temp/
+*.log
+
+# Environment & Sensitive (Harden in subdirectories too)
+.env
+.env.local
+.env.*.local
+*.pem
+service-account.json
+credentials.json
+
+# Dependencies & Venvs
+node_modules/
+**/node_modules/
+venv/
+**/venv*/
+.venv/
+**/.venv*/
+dist/
+**/dist/
+build/
+**/build/
+
+# Large Assets & Models
+*.onnx
+**/*.onnx
+*.pt
+**/*.pt
+*.pth
+**/*.pth
+*.weights
+**/*.weights
+**/runs/
+**/weights/
+

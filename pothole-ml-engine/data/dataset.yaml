@@ -1,0 +1,5 @@
+path: D:\DriveOS\pothole-ml-engine\data
+train: train/images
+val: valid/images
+names:
+  0: pothole
