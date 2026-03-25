@@ -5,6 +5,7 @@ import 'package:sensors_plus/sensors_plus.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:noise_meter/noise_meter.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'encryption_service.dart';
 
 /// Threshold for G-force spike detection (in m/s²)
 const double kGForceThreshold = 15.0;
@@ -136,7 +137,7 @@ class SensorService extends ChangeNotifier {
   Future<void> _publishPendingVerification(double magnitude) async {
     try {
       final dbRef = FirebaseDatabase.instance.ref('pending_verifications');
-      await dbRef.push().set({
+      final payload = {
         'type': 'SHAKE_TRIGGER',
         'magnitude_g': double.parse(magnitude.toStringAsFixed(2)),
         'timestamp': DateTime.now().millisecondsSinceEpoch,
@@ -146,7 +147,11 @@ class SensorService extends ChangeNotifier {
           'lat': 11.922, // Will be replaced with actual GPS in production
           'lon': 79.630,
         },
-      });
+      };
+
+      final encryptedPayload = EncryptionService.encryptPayload(payload);
+      await dbRef.push().set({'e2ee_payload': encryptedPayload});
+
     } catch (e) {
       if (kDebugMode) print('SensorService: Firebase push failed: $e');
     }

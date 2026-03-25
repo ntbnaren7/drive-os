@@ -11,6 +11,7 @@
     "sim": "tsx scripts/v2x-sim/simulation.ts"
   },
   "dependencies": {
+    "crypto-js": "^4.2.0",
     "firebase": "^12.11.0",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.0.1",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@types/crypto-js": "^4.2.2",
     "@types/mapbox-gl": "^3.4.1",
     "@types/ngeohash": "^0.6.8",
     "@types/node": "^24.12.0",

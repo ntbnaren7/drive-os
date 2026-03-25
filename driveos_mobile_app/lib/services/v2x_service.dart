@@ -6,6 +6,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/v2x_event.dart';
 import '../models/vehicle.dart';
+import 'encryption_service.dart';
 
 class V2XService extends ChangeNotifier {
   final List<V2XEvent> _events = [];
@@ -90,21 +91,32 @@ class V2XService extends ChangeNotifier {
       
       _eventsRef!.onChildAdded.listen((event) {
         if (event.snapshot.value != null) {
-          final data = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
-          final newEvent = V2XEvent.fromJson(event.snapshot.key!, data);
-          _events.insert(0, newEvent);
-          if (_events.length > 50) _events.removeLast();
-          _checkProximity(newEvent);
-          notifyListeners();
+          final snapshotData = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+          if (snapshotData.containsKey('e2ee_payload')) {
+            final dataMap = EncryptionService.decryptPayload(snapshotData['e2ee_payload'] as String);
+            if (dataMap != null) {
+              final newEvent = V2XEvent.fromJson(event.snapshot.key!, dataMap);
+              _events.insert(0, newEvent);
+              if (_events.length > 50) _events.removeLast();
+              _checkProximity(newEvent);
+              notifyListeners();
+            }
+          }
         }
       });
 
       _vehiclesRef!.onValue.listen((event) {
         if (event.snapshot.value != null) {
-          final data = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+          final wrapperData = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
           _vehicles.clear();
-          data.forEach((key, value) {
-            _vehicles.add(Vehicle.fromJson(key, Map<dynamic, dynamic>.from(value)));
+          wrapperData.forEach((key, value) {
+            final childMap = Map<dynamic, dynamic>.from(value);
+            if (childMap.containsKey('e2ee_payload')) {
+              final data = EncryptionService.decryptPayload(childMap['e2ee_payload'] as String);
+              if (data != null) {
+                _vehicles.add(Vehicle.fromJson(key, data));
+              }
+            }
           });
           _isConnected = true;
           notifyListeners();
@@ -113,10 +125,16 @@ class V2XService extends ChangeNotifier {
 
       _healthRef!.onValue.listen((event) {
         if (event.snapshot.value != null) {
-          final data = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+          final wrapperData = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
           _healthMap.clear();
-          data.forEach((key, value) {
-            _healthMap[key] = VehicleHealth.fromJson(Map<dynamic, dynamic>.from(value));
+          wrapperData.forEach((key, value) {
+            final childMap = Map<dynamic, dynamic>.from(value);
+            if (childMap.containsKey('e2ee_payload')) {
+              final data = EncryptionService.decryptPayload(childMap['e2ee_payload'] as String);
+              if (data != null) {
+                _healthMap[key] = VehicleHealth.fromJson(data);
+              }
+            }
           });
           notifyListeners();
         }
@@ -124,19 +142,31 @@ class V2XService extends ChangeNotifier {
 
       _municipalRef!.onValue.listen((event) {
         if (event.snapshot.value != null) {
-          _municipalData = Map<String, dynamic>.from(event.snapshot.value as Map);
-          notifyListeners();
+          final wrapperMap = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+          if (wrapperMap.containsKey('e2ee_payload')) {
+            final dec = EncryptionService.decryptPayload(wrapperMap['e2ee_payload'] as String);
+            if (dec != null) {
+              _municipalData = dec;
+              notifyListeners();
+            }
+          }
         }
       });
 
       _rshiRef!.onValue.listen((event) {
         if (event.snapshot.value != null) {
-          final data = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
-          _roadSegments = data.entries.map((e) {
-            final map = Map<String, dynamic>.from(e.value as Map);
-            map['id'] = e.key;
-            return map;
-          }).toList();
+          final wrapperData = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+          _roadSegments.clear();
+          wrapperData.entries.forEach((e) {
+            final childMap = Map<String, dynamic>.from(e.value as Map);
+            if (childMap.containsKey('e2ee_payload')) {
+              final data = EncryptionService.decryptPayload(childMap['e2ee_payload'] as String);
+              if (data != null) {
+                data['id'] = e.key;
+                _roadSegments.add(data);
+              }
+            }
+          });
           _roadSegments.sort((a, b) => (b['repair_priority'] ?? 0).compareTo(a['repair_priority'] ?? 0));
           notifyListeners();
         }
@@ -169,19 +199,20 @@ class V2XService extends ChangeNotifier {
   }
 
   Future<void> flagHazard(double lat, double lng, String type, double severity) async {
-    final payload = V2XEvent(
-      id: '',
-      type: type,
-      latitude: lat,
-      longitude: lng,
-      severity: severity,
-      timestamp: DateTime.now().millisecondsSinceEpoch,
-      source: 'mobile_app',
-    ).toJson();
+    final payload = {
+      'type': type,
+      'latitude': lat,
+      'longitude': lng,
+      'severity': severity,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+      'source': 'mobile_app',
+    };
 
     if (_eventsRef != null && _isConnected) {
-      await _eventsRef!.push().set(payload);
+      final encryptedString = EncryptionService.encryptPayload(payload);
+      await _eventsRef!.push().set({'e2ee_payload': encryptedString});
     } else {
+      payload['id'] = 'local_echo';
       final pseudoEvent = V2XEvent.fromJson('local_echo', payload);
       _events.insert(0, pseudoEvent);
       _checkProximity(pseudoEvent);

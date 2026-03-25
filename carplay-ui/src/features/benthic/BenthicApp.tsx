@@ -4,6 +4,7 @@ import { ref, push, set, onValue } from 'firebase/database';
 import * as ort from 'onnxruntime-web';
 import { ScanEye, Waves, FileSearch, Crosshair, ScrollText, Play, Square } from 'lucide-react';
 import { BentoCard } from './BentoCard';
+import { EncryptionService } from '../../services/encryption';
 import './BenthicApp.css';
 
 declare global {
@@ -105,11 +106,14 @@ function BenthicApp() {
     const unsub = onValue(vehRef, (snap) => {
       const data = snap.val();
       if (data) {
-        const firstVeh = Object.values(data)[0] as any;
-        if (firstVeh?.location) {
-          setVehicleLat(firstVeh.location.lat);
-          setVehicleLon(firstVeh.location.lon);
-          setMeshStatus('CONNECTED');
+        const firstVehWrapper = Object.values(data)[0] as any;
+        if (firstVehWrapper && firstVehWrapper.e2ee_payload) {
+          const firstVeh = EncryptionService.decryptPayload(firstVehWrapper.e2ee_payload);
+          if (firstVeh && firstVeh.location) {
+            setVehicleLat(firstVeh.location.lat);
+            setVehicleLon(firstVeh.location.lon);
+            setMeshStatus('CONNECTED');
+          }
         }
       }
     });
@@ -192,7 +196,7 @@ function BenthicApp() {
     };
     
     const eventsRef = ref(db, 'events');
-    set(push(eventsRef), payload);
+    set(push(eventsRef), { e2ee_payload: EncryptionService.encryptPayload(payload) });
     
     setDetectionCount(prev => prev + 1);
     setFlashDetect(true);
@@ -426,7 +430,7 @@ function BenthicApp() {
                   };
 
                   const eventsRef = ref(db, 'events');
-                  set(push(eventsRef), payload);
+                  set(push(eventsRef), { e2ee_payload: EncryptionService.encryptPayload(payload) });
                   
                   setDetectionCount(d => d + 1);
                   setFlashDetect(true);

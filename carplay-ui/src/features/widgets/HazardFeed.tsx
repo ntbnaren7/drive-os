@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { db } from '../../services/firebase';
 import { ref, onValue } from 'firebase/database';
 import { CheckCircle2 } from 'lucide-react';
+import { EncryptionService } from '../../services/encryption';
 import './HazardFeed.css';
 
 interface LiveHazard {
@@ -57,19 +58,22 @@ const HazardFeed: React.FC = () => {
       if (!data) { setHazards([]); return; }
 
       const parsed: LiveHazard[] = [];
-      Object.entries(data).forEach(([key, ev]: [string, any]) => {
-        if (ev.detection?.subtype === 'pothole' && ev.location) {
-          parsed.push({
-            id: key,
-            type: ev.detection.subtype,
-            severity: ev.detection.severity ?? 0,
-            confidence: ev.detection.confidence ?? 0,
-            votes: ev.validation?.votes ?? 1,
-            verified: ev.validation?.verified ?? false,
-            lat: ev.location.lat,
-            lon: ev.location.lon,
-            timestamp: ev.timestamp,
-          });
+      Object.entries(data).forEach(([key, wrapper]: [string, any]) => {
+        if (wrapper && wrapper.e2ee_payload) {
+          const ev = EncryptionService.decryptPayload(wrapper.e2ee_payload);
+          if (ev && ev.detection?.subtype === 'pothole' && ev.location) {
+            parsed.push({
+              id: key,
+              type: ev.detection.subtype,
+              severity: ev.detection.severity ?? 0,
+              confidence: ev.detection.confidence ?? 0,
+              votes: ev.validation?.votes ?? 1,
+              verified: ev.validation?.verified ?? false,
+              lat: ev.location.lat,
+              lon: ev.location.lon,
+              timestamp: ev.timestamp,
+            });
+          }
         }
       });
 

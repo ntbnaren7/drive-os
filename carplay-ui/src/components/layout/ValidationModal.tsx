@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../services/firebase';
 import { ref, onValue, update, push, set } from 'firebase/database';
 import { AlertTriangle, Check, X, Smartphone } from 'lucide-react';
+import { EncryptionService } from '../../services/encryption';
 import './ValidationModal.css';
 
 interface PendingTrigger {
@@ -29,10 +30,13 @@ const ValidationModal: React.FC = () => {
       let active: PendingTrigger | null = null;
       
       // Find latest pending trigger within last 15 seconds
-      Object.entries(data).forEach(([key, val]: [string, any]) => {
-        if (val.status === 'PENDING_CONFIRMATION' && (now - val.timestamp) < 15000) {
-          if (!active || val.timestamp > active.timestamp) {
-            active = { id: key, ...val };
+      Object.entries(data).forEach(([key, wrapper]: [string, any]) => {
+        if (wrapper && wrapper.e2ee_payload) {
+          const val = EncryptionService.decryptPayload(wrapper.e2ee_payload);
+          if (val && val.status === 'PENDING_CONFIRMATION' && (now - val.timestamp) < 15000) {
+            if (!active || val.timestamp > active.timestamp) {
+              active = { id: key, ...val };
+            }
           }
         }
       });
@@ -47,7 +51,8 @@ const ValidationModal: React.FC = () => {
     if (!trigger) return;
     
     // 1. Mark as resolved
-    await update(ref(db, `pending_verifications/${trigger.id}`), { status: 'CONFIRMED' });
+    const updatePayload = { ...trigger, status: 'CONFIRMED' };
+    await update(ref(db, `pending_verifications/${trigger.id}`), { e2ee_payload: EncryptionService.encryptPayload(updatePayload) });
     
     // 2. Push human-verified hazard to V2X mesh
     const payload = {
@@ -60,13 +65,14 @@ const ValidationModal: React.FC = () => {
       ttl: 15000,
     };
     
-    await set(push(ref(db, 'events')), payload);
+    await set(push(ref(db, 'events')), { e2ee_payload: EncryptionService.encryptPayload(payload) });
     setTrigger(null);
   };
 
   const handleDismiss = async () => {
     if (!trigger) return;
-    await update(ref(db, `pending_verifications/${trigger.id}`), { status: 'DISMISSED' });
+    const updatePayload = { ...trigger, status: 'DISMISSED' };
+    await update(ref(db, `pending_verifications/${trigger.id}`), { e2ee_payload: EncryptionService.encryptPayload(updatePayload) });
     setTrigger(null);
   };
 

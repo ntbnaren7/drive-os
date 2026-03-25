@@ -4,6 +4,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { Navigation2, MapPin } from 'lucide-react';
 import { db } from '../../services/firebase';
 import { ref as fbRef, onValue } from 'firebase/database';
+import { EncryptionService } from '../../services/encryption';
 import './MapComponent.css';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN; 
@@ -405,19 +406,22 @@ const MapComponent = React.forwardRef<MapComponentHandle, MapComponentProps>(({ 
         // Build GeoJSON FeatureCollection from live events
         const features: any[] = [];
         if (data) {
-          Object.values(data).forEach((ev: any) => {
-            if (ev.detection?.subtype === 'pothole' && ev.location) {
-              features.push({
-                type: 'Feature',
-                geometry: {
-                  type: 'Point',
-                  coordinates: [ev.location.lon, ev.location.lat]
-                },
-                properties: {
-                  coordLabel: `${ev.location.lat.toFixed(4)}, ${ev.location.lon.toFixed(4)}`,
-                  severity: ev.detection.severity
-                }
-              });
+          Object.values(data).forEach((wrapper: any) => {
+            if (wrapper && wrapper.e2ee_payload) {
+              const ev = EncryptionService.decryptPayload(wrapper.e2ee_payload);
+              if (ev && ev.detection?.subtype === 'pothole' && ev.location) {
+                features.push({
+                  type: 'Feature',
+                  geometry: {
+                    type: 'Point',
+                    coordinates: [ev.location.lon, ev.location.lat]
+                  },
+                  properties: {
+                    coordLabel: `${ev.location.lat.toFixed(4)}, ${ev.location.lon.toFixed(4)}`,
+                    severity: ev.detection.severity
+                  }
+                });
+              }
             }
           });
         }

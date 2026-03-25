@@ -1,7 +1,23 @@
 import * as dotenv from 'dotenv';
 import geohash from 'ngeohash';
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, set, remove, onValue, update, Database } from 'firebase/database';
+import { getDatabase, ref, set, remove, Database } from 'firebase/database';
+import CryptoJS from 'crypto-js';
+
+const SHARED_KEY_STRING = 'driveos_hackathon_e2e_secret_key';
+const KEY = CryptoJS.enc.Utf8.parse(SHARED_KEY_STRING);
+
+function encryptData(data: any): { e2ee_payload: string } {
+  const jsonString = JSON.stringify(data);
+  const iv = CryptoJS.lib.WordArray.random(16);
+  const encrypted = CryptoJS.AES.encrypt(jsonString, KEY, {
+    iv: iv,
+    mode: CryptoJS.mode.CBC,
+    padding: CryptoJS.pad.Pkcs7,
+  });
+  const combined = iv.clone().concat(encrypted.ciphertext);
+  return { e2ee_payload: CryptoJS.enc.Base64.stringify(combined) };
+}
 
 dotenv.config({ path: './.env' });
 
@@ -328,7 +344,7 @@ class SwarmDirector {
       timestamp: Math.floor(Date.now() / 1000),
     };
 
-    set(ref(db, `adas/active_alert`), adasPayload).catch(() => {});
+    set(ref(db, `adas/active_alert`), encryptData(adasPayload)).catch(() => {});
   }
 
   // -------------------------------------------------------
@@ -417,14 +433,14 @@ class SwarmDirector {
 
       // Publish individual segments
       segments.forEach((seg) => {
-        set(ref(db!, `rshi/${seg.segment_id}`), seg).catch(() => {});
+        set(ref(db!, `rshi/${seg.segment_id}`), encryptData(seg)).catch(() => {});
       });
 
       // Publish aggregate MUNICIPAL DASHBOARD
       const totalPotholes = Array.from(this.potholeRegistry.values()).length;
       const verifiedPotholes = Array.from(this.potholeRegistry.values()).filter(p => p.verified).length;
       
-      set(ref(db!, 'municipal_dashboard/city_overview'), {
+      const mdPayload = {
         total_potholes_detected: totalPotholes,
         verified_potholes: verifiedPotholes,
         total_road_segments: segments.length,
@@ -436,7 +452,9 @@ class SwarmDirector {
         fleet_coverage_km: Number((SHARED_ROUTE.length * 0.12).toFixed(1)),
         active_fleet_size: this.vehicles.size,
         last_updated: Math.floor(Date.now() / 1000),
-      }).catch(() => {});
+      };
+      
+      set(ref(db!, 'municipal_dashboard/city_overview'), encryptData(mdPayload)).catch(() => {});
 
     }, 5000);
   }
@@ -507,7 +525,7 @@ class SwarmDirector {
 
   private publishVehicle(node: VehicleNode) {
     if (db) {
-      set(ref(db, `vehicles/${node.vehicle_id}`), node).catch(() => {});
+      set(ref(db, `vehicles/${node.vehicle_id}`), encryptData(node)).catch(() => {});
     }
   }
 
@@ -555,7 +573,7 @@ class SwarmDirector {
       };
     }
 
-    set(ref(db, `events/${entry.event_id}`), eventPayload).catch((e) =>
+    set(ref(db, `events/${entry.event_id}`), encryptData(eventPayload)).catch((e) =>
       console.warn("\nSync fail:", e.message)
     );
   }
@@ -634,7 +652,7 @@ class SwarmDirector {
           status,
         };
 
-        set(ref(db!, `vehicle_health/${id}`), payload).catch(() => {});
+        set(ref(db!, `vehicle_health/${id}`), encryptData(payload)).catch(() => {});
       });
     }, 3000);
   }

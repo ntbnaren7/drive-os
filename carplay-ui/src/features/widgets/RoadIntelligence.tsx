@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../../services/firebase';
 import { ref, onValue } from 'firebase/database';
 import { AlertOctagon, Activity, Shield, Radar, ArrowLeftRight, CheckCircle2 } from 'lucide-react';
+import { EncryptionService } from '../../services/encryption';
 import './RoadIntelligence.css';
 
 interface V2XEvent {
@@ -54,11 +55,14 @@ const RoadIntelligence: React.FC = () => {
       const now = Math.floor(Date.now() / 1000);
       let newestEvent: V2XEvent | null = null;
 
-      Object.values(data).forEach((ev: any) => {
-        if (ev.detection?.subtype === 'pothole') {
-          if (now - ev.timestamp <= 60) {
-            if (!newestEvent || ev.timestamp > newestEvent.timestamp) {
-              newestEvent = ev;
+      Object.values(data).forEach((wrapper: any) => {
+        if (wrapper.e2ee_payload) {
+          const ev = EncryptionService.decryptPayload(wrapper.e2ee_payload);
+          if (ev && ev.detection?.subtype === 'pothole') {
+            if (now - ev.timestamp <= 60) {
+              if (!newestEvent || ev.timestamp > newestEvent.timestamp) {
+                newestEvent = ev;
+              }
             }
           }
         }
@@ -70,8 +74,12 @@ const RoadIntelligence: React.FC = () => {
     // Listen to ADAS alerts
     const adasRef = ref(db, 'adas/active_alert');
     const unsubAdas = onValue(adasRef, (snapshot) => {
-      const data = snapshot.val();
-      setAdasAlert(data || null);
+      const wrapper = snapshot.val();
+      if (wrapper && wrapper.e2ee_payload) {
+        setAdasAlert(EncryptionService.decryptPayload(wrapper.e2ee_payload));
+      } else {
+        setAdasAlert(null);
+      }
     });
 
     // Listen to active vehicle count
