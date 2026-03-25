@@ -5,7 +5,10 @@ import 'core/theme.dart';
 import 'screens/live_view_screen.dart';
 import 'screens/health_screen.dart';
 import 'screens/swarm_screen.dart';
+import 'screens/municipal_screen.dart';
+import 'screens/sensor_screen.dart';
 import 'services/v2x_service.dart';
+import 'services/sensor_service.dart';
 import 'firebase_options.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
@@ -20,6 +23,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => V2XService()),
+        ChangeNotifierProvider(create: (_) => SensorService()),
       ],
       child: const DriveOSMobileApp(),
     ),
@@ -52,6 +56,8 @@ class _AppShellState extends State<AppShell> {
   final List<Widget> _screens = const [
     LiveViewScreen(),
     HealthScreen(),
+    MunicipalScreen(),
+    SensorScreen(),
     SwarmScreen(),
   ];
 
@@ -82,6 +88,16 @@ class _AppShellState extends State<AppShell> {
               icon: Icon(LucideIcons.heartPulse),
               selectedIcon: Icon(LucideIcons.heartPulse),
               label: 'HEALTH',
+            ),
+            NavigationDestination(
+              icon: Icon(LucideIcons.landmark),
+              selectedIcon: Icon(LucideIcons.landmark),
+              label: 'CITY',
+            ),
+            NavigationDestination(
+              icon: Icon(LucideIcons.activity),
+              selectedIcon: Icon(LucideIcons.activity),
+              label: 'SENSORS',
             ),
             NavigationDestination(
               icon: Icon(LucideIcons.radio),

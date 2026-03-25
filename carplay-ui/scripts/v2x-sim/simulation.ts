@@ -332,25 +332,28 @@ class SwarmDirector {
   }
 
   // -------------------------------------------------------
-  // RSHI (Road Surface Health Index) Worker
-  // Aggregates pothole density into road segments
+  // RSHI + MUNICIPAL ROI ENGINE
+  // Road Surface Health Index + Economic Impact Calculator
   // -------------------------------------------------------
   private startRSHIWorker() {
     setInterval(() => {
       if (!db) return;
       
-      // Divide the route into segments and score them
-      const segmentSize = 4; // 4 waypoints per segment
+      const segmentSize = 4;
       const segments: any[] = [];
+      let totalDamageCost = 0;
+      let totalRepairBudget = 0;
+      let totalCO2Impact = 0;
+      let criticalSegments = 0;
       
       for (let i = 0; i < SHARED_ROUTE.length; i += segmentSize) {
         const segWaypoints = SHARED_ROUTE.slice(i, i + segmentSize);
         const segCenter = segWaypoints[Math.floor(segWaypoints.length / 2)];
         
-        // Count potholes in this segment
         let potholeCount = 0;
         let maxSeverity = 0;
         let totalConfidence = 0;
+        let totalSeverity = 0;
         
         this.potholeRegistry.forEach((pothole) => {
           for (const wp of segWaypoints) {
@@ -360,6 +363,7 @@ class SwarmDirector {
             if (dist < 0.001) {
               potholeCount++;
               maxSeverity = Math.max(maxSeverity, pothole.severity);
+              totalSeverity += pothole.severity;
               totalConfidence += pothole.confidence;
               break;
             }
@@ -370,28 +374,71 @@ class SwarmDirector {
         const healthScore = Math.max(0, 100 - (potholeCount * 30) - (maxSeverity * 20));
         const status = healthScore > 70 ? 'GOOD' : healthScore > 40 ? 'FAIR' : 'CRITICAL';
 
+        // ── MUNICIPAL ROI CALCULATIONS ──
+        // Vehicle Damage Cost: $80-$350 per pothole hit depending on severity
+        const segDamageCost = potholeCount > 0
+          ? Math.round(potholeCount * (80 + totalSeverity / potholeCount * 270))
+          : 0;
+        
+        // Repair Priority: weighted by density, severity, and traffic volume (simulated)
+        const trafficMultiplier = 1.2 + Math.random() * 0.6; // 1.2-1.8x
+        const repairPriority = Math.min(100, Math.round(
+          (potholeCount * 25 + maxSeverity * 40 + (100 - healthScore) * 0.35) * trafficMultiplier
+        ));
+        
+        // CO2 Impact: braking + acceleration waste per pothole (~0.15kg per event)
+        const co2Kg = Number((potholeCount * 0.15 * trafficMultiplier).toFixed(2));
+        
+        // Repair budget estimate: $2,500 per pothole (municipal average)
+        const repairBudget = potholeCount * 2500;
+        
+        totalDamageCost += segDamageCost;
+        totalRepairBudget += repairBudget;
+        totalCO2Impact += co2Kg;
+        if (status === 'CRITICAL') criticalSegments++;
+
         segments.push({
           segment_id: `seg_${Math.floor(i / segmentSize)}`,
           center: { lat: segCenter.lat, lon: segCenter.lon },
-          bounds: {
-            start: segWaypoints[0],
-            end: segWaypoints[segWaypoints.length - 1],
-          },
+          bounds: { start: segWaypoints[0], end: segWaypoints[segWaypoints.length - 1] },
           health_score: Math.round(healthScore),
           status,
           pothole_count: potholeCount,
-          max_severity: maxSeverity,
-          avg_confidence: potholeCount > 0 ? totalConfidence / potholeCount : 0,
+          max_severity: Number(maxSeverity.toFixed(2)),
+          avg_confidence: potholeCount > 0 ? Number((totalConfidence / potholeCount).toFixed(2)) : 0,
+          // Municipal ROI fields
+          est_damage_cost: segDamageCost,
+          repair_priority: repairPriority,
+          repair_budget: repairBudget,
+          co2_impact_kg: co2Kg,
           last_updated: Math.floor(Date.now() / 1000),
         });
       }
 
-      // Publish RSHI to Firebase
+      // Publish individual segments
       segments.forEach((seg) => {
         set(ref(db!, `rshi/${seg.segment_id}`), seg).catch(() => {});
       });
 
-    }, 5000); // Update every 5 seconds
+      // Publish aggregate MUNICIPAL DASHBOARD
+      const totalPotholes = Array.from(this.potholeRegistry.values()).length;
+      const verifiedPotholes = Array.from(this.potholeRegistry.values()).filter(p => p.verified).length;
+      
+      set(ref(db!, 'municipal_dashboard/city_overview'), {
+        total_potholes_detected: totalPotholes,
+        verified_potholes: verifiedPotholes,
+        total_road_segments: segments.length,
+        critical_segments: criticalSegments,
+        est_vehicle_damage_total: totalDamageCost,
+        est_repair_budget_needed: totalRepairBudget,
+        damage_prevented_pct: verifiedPotholes > 0 ? Math.round((verifiedPotholes / Math.max(1, totalPotholes)) * 85) : 0,
+        co2_saved_kg: Number(totalCO2Impact.toFixed(2)),
+        fleet_coverage_km: Number((SHARED_ROUTE.length * 0.12).toFixed(1)),
+        active_fleet_size: this.vehicles.size,
+        last_updated: Math.floor(Date.now() / 1000),
+      }).catch(() => {});
+
+    }, 5000);
   }
 
   // -------------------------------------------------------

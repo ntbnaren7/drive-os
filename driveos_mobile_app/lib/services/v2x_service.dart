@@ -71,11 +71,22 @@ class V2XService extends ChangeNotifier {
     }
   }
 
+  Map<String, dynamic> _municipalData = {};
+  List<Map<String, dynamic>> _roadSegments = [];
+
+  DatabaseReference? _municipalRef;
+  DatabaseReference? _rshiRef;
+
+  Map<String, dynamic> get municipalData => _municipalData;
+  List<Map<String, dynamic>> get roadSegments => _roadSegments;
+
   Future<void> _initFirebase() async {
     try {
       _eventsRef = FirebaseDatabase.instance.ref('events');
       _vehiclesRef = FirebaseDatabase.instance.ref('vehicles');
       _healthRef = FirebaseDatabase.instance.ref('vehicle_health');
+      _municipalRef = FirebaseDatabase.instance.ref('municipal_dashboard/city_overview');
+      _rshiRef = FirebaseDatabase.instance.ref('rshi');
       
       _eventsRef!.onChildAdded.listen((event) {
         if (event.snapshot.value != null) {
@@ -100,7 +111,6 @@ class V2XService extends ChangeNotifier {
         }
       });
 
-      // Listen for vehicle health telemetry
       _healthRef!.onValue.listen((event) {
         if (event.snapshot.value != null) {
           final data = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
@@ -108,6 +118,26 @@ class V2XService extends ChangeNotifier {
           data.forEach((key, value) {
             _healthMap[key] = VehicleHealth.fromJson(Map<dynamic, dynamic>.from(value));
           });
+          notifyListeners();
+        }
+      });
+
+      _municipalRef!.onValue.listen((event) {
+        if (event.snapshot.value != null) {
+          _municipalData = Map<String, dynamic>.from(event.snapshot.value as Map);
+          notifyListeners();
+        }
+      });
+
+      _rshiRef!.onValue.listen((event) {
+        if (event.snapshot.value != null) {
+          final data = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+          _roadSegments = data.entries.map((e) {
+            final map = Map<String, dynamic>.from(e.value as Map);
+            map['id'] = e.key;
+            return map;
+          }).toList();
+          _roadSegments.sort((a, b) => (b['repair_priority'] ?? 0).compareTo(a['repair_priority'] ?? 0));
           notifyListeners();
         }
       });

@@ -7,6 +7,7 @@ import WidgetsPanel from './features/widgets/WidgetsPanel';
 import MediaBar from './components/layout/MediaBar';
 import SystemDock from './components/layout/SystemDock';
 import BenthicApp from './features/benthic/BenthicApp';
+import ValidationModal from './components/layout/ValidationModal';
 
 export type AppFeature = 'DASHBOARD' | 'BENTHIC';
 
@@ -15,6 +16,7 @@ function App() {
 
   return (
     <>
+      <ValidationModal />
       <div style={{ display: activeApp === 'DASHBOARD' ? 'block' : 'none', height: '100%' }}>
         <MainLayout
           StatusBar={<StatusBar />}
